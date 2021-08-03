@@ -1,6 +1,11 @@
 package main
 
+import (
+	"config"
+	"agent"
+)
+
 func main() {
-	indicatorCollectInMachine();
-	indicatorCollectOfCrust();
+	config.InitDBConnection()
+	agent.ExecuteTask()
 }
