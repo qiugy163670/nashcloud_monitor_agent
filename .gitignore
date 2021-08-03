@@ -31,6 +31,7 @@ sdaccel_profile_summary.csv
 *~
 .DS_Store
 .project
+.github
 .settings
 .idea/
 .idea_modules/
@@ -38,6 +39,7 @@ sdaccel_profile_summary.csv
 target/
 lib_managed/
 log/
+pkg/
 out/
 result/
 tmp_verisons/

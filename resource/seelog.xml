@@ -1,0 +1,67 @@
+<!-- type 设置记录器类型 https://github.com/cihub/seelog/wiki/Logger-types-reference
+minlevel 设置日志最低级别; maxlevel 设置日志的最高级别
+也可以通过 <seelog levels="trace,info,critical"> 设置日记级别 -->
+<seelog type="asynctimer" asyncinterval="5000000" minlevel="debug" maxlevel="error">
+    <exceptions>
+        <!-- <exception> 是为特定的程序文件(filepattern)或函数(funcpattern)设定特殊的日志规则 -->
+        <exception funcpattern="*main.test*Something*" minlevel="info"/>
+        <exception filepattern="*main.go" minlevel="error"/>
+    </exceptions>
+
+    <!-- <outputs> formatid 指定日志输出的格式(格式在<formats>标签中定义) -->
+    <outputs formatid="main">
+        <!-- <console> 标签表示输出到终端 -->
+        <console/>
+
+        <!-- <splitter> 用于细分<outputs>日志格式，内部支持:file(文件), rollingfile(滚动文件，自动清除过期),
+        buffered(日志写到内存再写到文件), smtp(发送日志到邮件), con(网络转发) -->
+        <splitter formatid="format1">
+            <!-- log.log, log2.log将按<formats>标签中的id="format1"格式写入 -->
+            <file path="log.log"/>
+            <file path="log2.log"/>
+        </splitter>
+        <splitter formatid="format2">
+            <file path="log3.log"/>
+            <file path="log4.log"/>
+        </splitter>
+
+        <!-- <rollingfile>滚动文件(定期清除过期日志)
+        formatid: 指定日志格式; type="size" 按大小; maxsize: 单日志文件最大大小; maxrools: 最大文件数 -->
+        <rollingfile formatid="someformat" type="size" filename="./log/roll.log" maxsize="100" maxrolls="3" />
+
+        <!-- <buffered> 将日志先存在内存中，定期写入文件，适合日志并发量较大或 IO 比较紧张的场合
+        size: 缓存大小; flushperiod: 缓存间隔(毫秒) -->
+        <buffered formatid="testlevels" size="10000" flushperiod="1000">
+            <file path="./log/bufFileFlush.log"/>
+        </buffered>
+
+        <!-- <filter>用于单独处理某级别日志
+        过滤日志，把级别是error的通过邮件smtp方式发送出去(一般会发给相应的运维人员) -->
+        <filter levels="error">
+            <file path="./log/error.log"/>
+            <smtp senderaddress="noreply-notification-service@none.org"
+                  sendername="Automatic notification service"
+                  hostname="mail.none.org"
+                  hostport="587"
+                  username="nns"
+                  password="123">
+                <recipient address="john-smith@none.com"/>
+                <recipient address="hans-meier@none.com"/>
+            </smtp>
+            <!-- 按tcp4网络协议发送日志 -->
+            <conn net="tcp4" addr="server.address:5514" tls="true" insecureskipverify="true" />
+        </filter>
+
+    </outputs>
+
+    <!-- <formats> 定制日志的输出格式
+    https://github.com/cihub/seelog/wiki/Format-reference -->
+    <formats>
+        <format id="main" format="%Date(2006 Jan 02/3:04:05.000000000 PM MST) [%Level] %Msg%n"/>
+        <format id="someformat" format="%Ns [%Level] %Msg%n"/>
+        <format id="testlevels" format="%Level %Lev %LEVEL %LEV %l %Msg%n"/>
+        <format id="usetags" format="&lt;msg&gt;%Msg&lt;/time&gt;"/>
+        <format id="format1" format="%Date/%Time [%LEV] %Msg%n"/>
+        <format id="format2" format="%File %FullPath %RelFile %Msg%n"/>
+    </formats>
+</seelog>

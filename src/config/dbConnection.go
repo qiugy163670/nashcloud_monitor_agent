@@ -3,6 +3,9 @@ package config
 import (
 	"database/sql"
 	"time"
+
+	log "github.com/cihub/seelog"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 const (
@@ -12,13 +15,32 @@ const (
 	dbType = "mysql"
 )
 
-func InitDBConnection()  {
-	db, err := sql.Open(dbType, dbUrl)
+var (
+	db *sql.DB
+)
+
+func Init() {
+	SetupLogger()
+}
+
+func InitDBConnection() (*sql.DB, error) {
+	Init()
+	defer log.Flush()
+
+	var err error
+	db, err = sql.Open(dbType, dbUrl)
 	if err != nil {
-		panic(err)
+		log.Error("get db connection failed: %s at %d", err.Error(), time.Now().Unix())
 	}
-	// See "Important settings" section.
 	db.SetConnMaxLifetime(time.Minute * 3)
 	db.SetMaxOpenConns(10)
 	db.SetMaxIdleConns(10)
+	return db, nil
+}
+
+func GetDBConnection() (*sql.DB, error) {
+	if db == nil {
+		return InitDBConnection()
+	}
+	return db, nil
 }
