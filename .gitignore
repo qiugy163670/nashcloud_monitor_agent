@@ -1,0 +1,56 @@
+Last login: Mon Aug  2 22:05:56 on ttys001
+➜  ~ cd Documents
+➜  Documents ls
+20130509153921131副本.pdf                        diandi.txt                                       study_project                                    国际证券
+2020春节动向.numbers                             dump.rdb                                         tools                                            教育培训
+VPProjects                                       livactor-key-pair-beijing.pem                    work                                             纳什研究院
+]{I9RXP8Q[CVY~AAAOE]3DF.jpg                      nash官网内容.docx                                孙千茵_resume.pdf                                个人设计合同.pdf
+archetype-catalog.xml                            onlinevisaapplicationform_6_02-05-2012副本.pdf   北京鹏程                                         英语培训网站.sketch
+➜  Documents cd 纳什研究院/ls
+cd: no such file or directory: 纳什研究院/ls
+➜  Documents ls
+20130509153921131副本.pdf                        diandi.txt                                       study_project                                    国际证券
+*#*#
+*.#*
+*.iml
+*.ipr
+*.iws
+*.pyc
+*.pyo
+*.swp
+*.log
+*.cmd
+*.symvers
+*.order
+*.ko
+*.mod.c
+*.mod.o
+*.o
+sdaccel_profile_summary.html
+sdaccel_profile_summary.csv
+*~
+.DS_Store
+.project
+.settings
+.idea/
+.idea_modules/
+!build/build
+target/
+lib_managed/
+log/
+out/
+result/
+tmp_verisons/
+
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+~
+".gitignore" 32L, 279C

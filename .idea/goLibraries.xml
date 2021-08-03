@@ -3,7 +3,7 @@
   <component name="GoLibraries">
     <option name="urls">
       <list>
-        <option value="file:///usr/local/Cellar/go@1.14/1.14.15/libexec/pkg/darwin_amd64" />
+        <option value="file://$PROJECT_DIR$" />
       </list>
     </option>
   </component>

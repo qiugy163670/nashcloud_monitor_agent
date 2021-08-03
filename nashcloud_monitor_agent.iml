@@ -3,7 +3,9 @@
   <component name="NewModuleRootManager" inherit-compiler-output="true">
     <exclude-output />
     <content url="file://$MODULE_DIR$" />
-    <orderEntry type="inheritedJdk" />
+    <orderEntry type="jdk" jdkName="Go 1.16.6" jdkType="Go SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="GOPATH &lt;nashcloud_monitor_agent&gt;" level="project" />
+    <orderEntry type="library" name="GOPATH &lt;nashcloud_monitor_agent&gt;" level="project" />
   </component>
 </module>
