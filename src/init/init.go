@@ -4,6 +4,7 @@ import (
 	"fmt"
 	ca "nashcloud_monitor_agent_sync/src/cmd"
 	ci "nashcloud_monitor_agent_sync/src/crust_info"
+	lt "nashcloud_monitor_agent_sync/src/tail"
 )
 
 func init() {
@@ -30,6 +31,13 @@ func init() {
 	fmt.Println("crustSmanager log file :", crustSmanager)
 	fmt.Println("crust log file :", crust)
 	fmt.Println("===============search crust logs is fine===============")
+	messages := make(chan string, 1)
+	go lt.Stream(crustSmanager, messages)
+	//go lt.Stream(crustSworker,messages)
+	//go lt.Stream(crustApiPath,messages)
+	for message := range messages {
+		fmt.Println("received", message)
+	}
 
 }
 

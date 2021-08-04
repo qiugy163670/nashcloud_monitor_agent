@@ -1,7 +1,6 @@
 package tail
 
 import (
-	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -65,19 +64,13 @@ var (
 )
 
 func init() {
-	flag.BoolVar(&follow, "f", false, "on time")
-	flag.IntVar(&line, "n", 10, "instead of the last 10")
+	follow = true
+	line = 10
 }
 
-func stream(path string) {
-	flag.Parse()
+func Stream(path string, m chan string) {
 	var err error
 	var readFile ReadFile
-	if len(os.Args) < 1 {
-		flag.Usage()
-		return
-	}
-
 	readFile.file, err = os.Open(path)
 	//readFile.file, err = os.Open(flag.Arg(0))
 	if err != nil {
@@ -86,10 +79,11 @@ func stream(path string) {
 	}
 
 	defer readFile.file.Close()
-
+	defer close(m)
 	for {
 		readFile.ReadPrint()
 		if !follow {
+			m <- "exit"
 			break
 		}
 	}
