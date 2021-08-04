@@ -50,7 +50,7 @@ func (f *ReadFile) ReadPrint() {
 			log.Info(mainLog.time)
 			//mianLogStr := logs.Log
 
-			//fmt.Println(util.UTCTransLocal(logs.Time))
+			//fmt.Println(utils.UTCTransLocal(logs.Time))
 		} else {
 			//index := indexs[lines-line]
 			//log := Json2Struct(string(data[index+1 : n]))
