@@ -1,4 +1,4 @@
-package main
+package tail
 
 import (
 	"fmt"
@@ -45,10 +45,12 @@ func (f *ReadFile) ReadPrint() {
 		lines += 1
 
 		if lines <= line || line <= 0 {
-			fmt.Print(string(data[:n]))
+			log := Json2Struct(string(data[:n]))
+			fmt.Println(log.Log)
 		} else {
 			index := indexs[lines-line]
-			fmt.Print(string(data[index+1 : n]))
+			log := Json2Struct(string(data[index+1 : n]))
+			fmt.Println("xx", log)
 		}
 
 	case io.EOF:
