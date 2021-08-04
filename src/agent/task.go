@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"config"
 	"github.com/cihub/seelog"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/robfig/cron"
@@ -9,6 +8,7 @@ import (
 	"github.com/shirou/gopsutil/host"
 	"github.com/shirou/gopsutil/load"
 	"github.com/shirou/gopsutil/mem"
+	"nashcloud_monitor_agent_sync/src/config"
 )
 
 func Init() {
@@ -30,7 +30,7 @@ func collectJob() {
 
 	}
 	var hostName, os, platform, platformVersion, kernelVersion string
-	err := db.QueryRow("select * from nash_servers where `name` = ?", hostInfos.Hostname).Scan(&hostName, &os, &platform, &platformVersion, &kernelVersion)
+	err = db.QueryRow("select * from nash_servers where `name` = ?", hostInfos.Hostname).Scan(&hostName, &os, &platform, &platformVersion, &kernelVersion)
 	if err != nil {
 
 	}
@@ -47,7 +47,7 @@ func collectJob() {
 	if err != nil {
 
 	}
-	//cpuInfos[0]
+	print(cpuInfos[0])
 
 	//获取负载信息
 	load.Avg()
