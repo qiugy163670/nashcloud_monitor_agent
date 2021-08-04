@@ -46,7 +46,11 @@ func (f *ReadFile) ReadPrint() {
 
 		if lines <= line || line <= 0 {
 			logs := Json2Struct(string(data[:n]))
-			log.Info(logs.Log)
+			mainLog := MainLogSync(logs)
+			log.Info(mainLog.time)
+			//mianLogStr := logs.Log
+
+			//fmt.Println(util.UTCTransLocal(logs.Time))
 		} else {
 			//index := indexs[lines-line]
 			//log := Json2Struct(string(data[index+1 : n]))
