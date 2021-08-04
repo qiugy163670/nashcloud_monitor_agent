@@ -1,7 +1,7 @@
 package tail
 
 import (
-	"fmt"
+	log "github.com/cihub/seelog"
 	"io"
 	"os"
 	"runtime"
@@ -45,17 +45,17 @@ func (f *ReadFile) ReadPrint() {
 		lines += 1
 
 		if lines <= line || line <= 0 {
-			log := Json2Struct(string(data[:n]))
-			fmt.Println(log.Log)
+			logs := Json2Struct(string(data[:n]))
+			log.Info(logs.Log)
 		} else {
-			index := indexs[lines-line]
-			log := Json2Struct(string(data[index+1 : n]))
-			fmt.Println("xx", log)
+			//index := indexs[lines-line]
+			//log := Json2Struct(string(data[index+1 : n]))
+			//log.Info("xx", log)
 		}
 
 	case io.EOF:
 	default:
-		fmt.Println(err)
+		log.Info(err)
 		return
 	}
 }
@@ -76,7 +76,7 @@ func Stream(path string, m chan string) {
 	readFile.file, err = os.Open(path)
 	//readFile.file, err = os.Open(flag.Arg(0))
 	if err != nil {
-		fmt.Println(err)
+		log.Info(err)
 		return
 	}
 
