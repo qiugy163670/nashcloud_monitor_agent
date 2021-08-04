@@ -33,8 +33,8 @@ func init() {
 	log.Info("===============search crust logs is fine===============")
 	messages := make(chan string, 1)
 	go lt.Stream(crustSmanager, messages)
-	go lt.Stream(crustSworker, messages)
-	go lt.Stream(crustApiPath, messages)
+	//go lt.Stream(crustSworker, messages)
+	//go lt.Stream(crustApiPath, messages)
 	for message := range messages {
 		log.Info("received", message)
 	}
