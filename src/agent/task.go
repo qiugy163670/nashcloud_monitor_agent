@@ -10,6 +10,7 @@ import (
 	"github.com/shirou/gopsutil/host"
 	"github.com/shirou/gopsutil/load"
 	"github.com/shirou/gopsutil/mem"
+	"github.com/shirou/gopsutil/net"
 	"os"
 	"utils"
 )
@@ -85,24 +86,39 @@ func collectJob() {
 	}
 	//获取磁盘信息
 	disk.IOCounters()
+	disk.Partitions(false)
 
 	//获取网络信息
-	//net.Addr{}
-
-	//获取进程信息
-	//process
-
-	//记录本次机器指标信息
-	stmt, err := db.Prepare("insert into monitor_host_indicator (host_name, host_ip, cpu_user, cpu_sys, cpu_idle, cpu_iowait, cpu_irq, cpu_sofirg, load1, load5, load15, load_process_total, load_process_run, mem_swap_total, mem_swap_used, mem_swap_free, mem_swap_percent, mem_vtotal, _mem_vused, mem_vfree, mem_vpercent) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+	netInfo, err := net.IOCounters(false)
+	if err != nil {
+		log.Error("get net info failed: %s from %s", err.Error(), tmpName)
+		return
+	}
+	//先查询上次累加值
+	var netBytesRev, netBytesSend, netPackageRev, netPackageSend, netDropRev, netDropSend, netErrorRev, netErrorSend uint64
+	db.QueryRow("select * from net_record limit 1").Scan(netBytesRev, netBytesSend, netPackageRev, netPackageSend, netDropRev, netDropSend, netErrorRev, netErrorSend)
+	//网络指标是累加值，所以需要记录每次的累加值
+	stmt, err := db.Prepare("update net_record set net_bytes_int = ?, net_bytes_out = ?, net_package_in = ?, net_package_out = ?, net_drop_in = ?, net_drop_out = ?, net_error_in, net_error_out")
 	if err != nil {
 		log.Error("prepare add host indicator failed: %s from %s", err.Error(), tmpName)
 		return
 	}
-	_, err = stmt.Exec(hostName, tmpIp,
+	_, err = stmt.Exec(netInfo[0].BytesRecv, netInfo[0].BytesSent, netInfo[0].PacketsRecv, netInfo[0].PacketsSent, netInfo[0].Dropin, netInfo[0].Dropout, netInfo[0].Errin, netInfo[0].Errout)
+	if err != nil {
+		log.Error("prepare add host indicator failed: %s from %s", err.Error(), tmpName)
+		return
+	}
+	//记录本次机器指标信息
+	stmt, err = db.Prepare("insert into monitor_host_indicator (host_name, host_ip, procs, cpu_user, cpu_sys, cpu_idle, cpu_iowait, cpu_irq, cpu_sofirg, load1, load5, load15, load_process_total, load_process_run, mem_swap_total, mem_swap_used, mem_swap_free, mem_swap_percent, mem_vtotal, _mem_vused, mem_vfree, mem_vpercent, net_traffic_rev, net_traffic_sent, net_drop_rev, net_drop_sent, net_error_rev, net_error_sent) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+	if err != nil {
+		log.Error("prepare add host indicator failed: %s from %s", err.Error(), tmpName)
+		return
+	}
+	_, err = stmt.Exec(hostName, tmpIp, hostInfos.Procs,
 		cpuInfos[0].User, cpuInfos[0].System, cpuInfos[0].Idle, cpuInfos[0].Iowait, cpuInfos[0].Irq, cpuInfos[0].Softirq,
 		loadInfo.Load1, loadInfo.Load5, loadInfo.Load15, loadMisInfo.ProcsTotal, loadMisInfo.ProcsRunning,
 		swapMemInfo.Total, swapMemInfo.Used, swapMemInfo.Free, swapMemInfo.UsedPercent, virtualMemInfo.Total, virtualMemInfo.Used, virtualMemInfo.Free, virtualMemInfo.UsedPercent,
-	)
+		(netInfo[0].BytesRecv-netBytesRev)/300, (netInfo[0].BytesSent-netBytesSend)/300, 100*(netInfo[0].Dropin-netDropRev)/(netInfo[0].PacketsRecv-netPackageRev), 100*(netInfo[0].Dropout-netDropSend)/(netInfo[0].PacketsSent-netPackageSend), 100*(netInfo[0].Errin-netErrorRev)/(netInfo[0].PacketsRecv-netPackageRev), 100*(netInfo[0].Errout-netErrorSend)/(netInfo[0].PacketsSent-netPackageSend))
 	if err != nil {
 		log.Error("formal add host indicator failed: %s from %s", err.Error(), tmpName)
 	}
