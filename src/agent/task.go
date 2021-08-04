@@ -96,22 +96,26 @@ func collectJob() {
 	}
 	//先查询上次累加值
 	var netBytesRev, netBytesSend, netPackageRev, netPackageSend, netDropRev, netDropSend, netErrorRev, netErrorSend uint64
-	db.QueryRow("select * from net_record limit 1").Scan(netBytesRev, netBytesSend, netPackageRev, netPackageSend, netDropRev, netDropSend, netErrorRev, netErrorSend)
+	err = db.QueryRow("select * from net_record limit 1").Scan(netBytesRev, netBytesSend, netPackageRev, netPackageSend, netDropRev, netDropSend, netErrorRev, netErrorSend)
+	if err != nil {
+		log.Error("get net last record failed: %s from %s", err.Error(), tmpName)
+		return
+	}
 	//网络指标是累加值，所以需要记录每次的累加值
 	stmt, err := db.Prepare("update net_record set net_bytes_int = ?, net_bytes_out = ?, net_package_in = ?, net_package_out = ?, net_drop_in = ?, net_drop_out = ?, net_error_in, net_error_out")
 	if err != nil {
-		log.Error("prepare add host indicator failed: %s from %s", err.Error(), tmpName)
+		log.Error("prepare add net record failed: %s from %s", err.Error(), tmpName)
 		return
 	}
 	_, err = stmt.Exec(netInfo[0].BytesRecv, netInfo[0].BytesSent, netInfo[0].PacketsRecv, netInfo[0].PacketsSent, netInfo[0].Dropin, netInfo[0].Dropout, netInfo[0].Errin, netInfo[0].Errout)
 	if err != nil {
-		log.Error("prepare add host indicator failed: %s from %s", err.Error(), tmpName)
+		log.Error("add net record failed: %s from %s", err.Error(), tmpName)
 		return
 	}
 	//记录本次机器指标信息
 	stmt, err = db.Prepare("insert into monitor_host_indicator (host_name, host_ip, procs, cpu_user, cpu_sys, cpu_idle, cpu_iowait, cpu_irq, cpu_sofirg, load1, load5, load15, load_process_total, load_process_run, mem_swap_total, mem_swap_used, mem_swap_free, mem_swap_percent, mem_vtotal, _mem_vused, mem_vfree, mem_vpercent, net_traffic_rev, net_traffic_sent, net_drop_rev, net_drop_sent, net_error_rev, net_error_sent) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
 	if err != nil {
-		log.Error("prepare add host indicator failed: %s from %s", err.Error(), tmpName)
+		log.Error("prepare add all indicator failed: %s from %s", err.Error(), tmpName)
 		return
 	}
 	_, err = stmt.Exec(hostName, tmpIp, hostInfos.Procs,
