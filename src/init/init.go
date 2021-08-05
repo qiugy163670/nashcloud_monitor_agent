@@ -4,11 +4,20 @@ import (
 	log "github.com/cihub/seelog"
 	ca "nashcloud_monitor_agent/src/cmd"
 	ci "nashcloud_monitor_agent/src/crust_info"
+	"nashcloud_monitor_agent/src/local"
 	lt "nashcloud_monitor_agent/src/tail"
+	"nashcloud_monitor_agent/src/utils"
+	"os"
 )
 
 func init() {
+	hostName, _ := os.Hostname()
+	ip := utils.GetHostIp()
+	local.GetLocal().Ip = ip
+	local.GetLocal().HostName = hostName
 	log.Info("===============agent start ===============")
+	log.Info(ip)
+	log.Info(hostName)
 	log.Info("checking docker ")
 
 	container := ci.GetContainer()
