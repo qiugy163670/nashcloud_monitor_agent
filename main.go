@@ -1,8 +1,6 @@
 package main
 
-import (
-	"agent"
-)
+import "agent"
 
 func main() {
 	agent.ExecuteTask()
