@@ -3,7 +3,7 @@ package tail
 import (
 	"encoding/json"
 	"fmt"
-	util "nashcloud_monitor_agent_sync/src/utils"
+	"nashcloud_monitor_agent/src/utils"
 	"strings"
 )
 
@@ -43,26 +43,70 @@ func logPush() {
 }
 
 var mainLog MainLog
+var count = -1
 
-func MainLogSync(log Log) MainLog {
-	mainLog.time = util.UTCTransLocal(log.Time)
+func MainLogSync(log string, time string) MainLog {
 
-	//index := strings.Index(log.Log, "small task")
-	if strings.Index(log.Log, "small task") != -1 {
-		split := strings.Split(log.Log, ":")
-		mainLog.smallTaskCount = split[len(split)-1]
-	} else if strings.Index(log.Log, "Pulling queue length") != -1 {
-		split := strings.Split(log.Log, ":")
-		mainLog.pullQueCount = split[len(split)-1]
-	} else if strings.Index(log.Log, " big task") != -1 {
-		split := strings.Split(log.Log, ":")
-		mainLog.bigTaskCount = split[len(split)-1]
-	} else if strings.Index(log.Log, "Sealing queue length") != -1 {
-		split := strings.Split(log.Log, ":")
-		mainLog.sealQueCount = split[len(split)-1]
+	//Checking pulling queue start
+	if strings.Index(log, "Checking pulling queue ...") != -1 {
+		mainLog.time = utils.UTCTransLocal(time)
+		count = 0
+	}
+	if count == 0 && strings.Index(log, "Pulling queue length") != -1 {
+		index := strings.Index(log, "/5000")
+		if index == -1 {
+			mainLog.pullQueCount = "0"
+		} else {
+			mainLog.pullQueCount = strings.ReplaceAll(log[index-3:index+5], ":", "")
+		}
+
+		count++
+	}
+	if count == 1 && strings.Index(log, "Ipfs small task") != -1 {
+		index := strings.Index(log, "/250")
+		if index == -1 {
+			mainLog.pullQueCount = "0"
+		} else {
+			mainLog.smallTaskCount = strings.ReplaceAll(log[index-3:index+4], ":", "")
+		}
+		count++
+	}
+	//Ipfs big task count
+	if count == 2 && strings.Index(log, "Ipfs big task count") != -1 {
+		index := strings.Index(log, "/500")
+		if index == -1 {
+			mainLog.pullQueCount = "0"
+		} else {
+			mainLog.bigTaskCount = strings.ReplaceAll(log[index-3:index+4], ":", "")
+		}
+		count++
+	}
+	if strings.Index(log, "Checking pulling queue end") != -1 {
 		fmt.Println(mainLog)
 		mainLog = MainLog{}
+		count = -1
 	}
+
+	//if  strings.Index(log.Log, "Ipfs big task") != -1 {
+	//	split := strings.Split(log.Log, ":")
+	//	mainLog.smallTaskCount = split[len(split)-1]
+	//	fmt.Println(split[len(split)-1])
+	//	count = 0
+	//
+	//}
+
+	//else if strings.Index(log.Log, "Pulling queue length") != -1 {
+	//	split := strings.Split(log.Log, ":")
+	//	mainLog.pullQueCount = split[len(split)-1]
+	//} else if strings.Index(log.Log, "big task") != -1 {
+	//	split := strings.Split(log.Log, ":")
+	//	mainLog.bigTaskCount = split[len(split)-1]
+	//} else if strings.Index(log.Log, "Sealing queue length") != -1 {
+	//	split := strings.Split(log.Log, ":")
+	//	mainLog.sealQueCount = split[len(split)-1]
+	//	fmt.Println(mainLog)
+	//	mainLog = MainLog{}
+	//}
 
 	return mainLog
 }

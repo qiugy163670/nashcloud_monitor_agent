@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"runtime"
+	"strings"
 )
 
 import (
@@ -45,17 +46,20 @@ func (f *ReadFile) ReadPrint() {
 		lines += 1
 
 		if lines <= line || line <= 0 {
-			logs := Json2Struct(string(data[:n]))
-			//mainLog := MainLogSync(logs)
-			MainLogSync(logs)
-			//mainLog.time
-			//mianLogStr := logs.Log
 
-			//fmt.Println(utils.UTCTransLocal(logs.Time))
+			if strings.Index(string(data[:n]), "block") == -1 {
+				logStr := strings.ReplaceAll(string(data[:n]), "\n", "")
+				logs := Json2Struct(logStr)
+				//mainLog := MainLogSync(logs)
+				MainLogSync(logStr, logs.Time)
+			}
+
+			//logs := Json2Struct(string(data[:n]))
+			//mainLog := MainLogSync(logs)
+			//MainLogSync(logs)
+
 		} else {
-			//index := indexs[lines-line]
-			//log := Json2Struct(string(data[index+1 : n]))
-			//log.Info("xx", log)
+
 		}
 
 	case io.EOF:

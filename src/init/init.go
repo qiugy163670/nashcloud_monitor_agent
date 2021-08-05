@@ -2,9 +2,9 @@ package init
 
 import (
 	log "github.com/cihub/seelog"
-	ca "nashcloud_monitor_agent_sync/src/cmd"
-	ci "nashcloud_monitor_agent_sync/src/crust_info"
-	lt "nashcloud_monitor_agent_sync/src/tail"
+	ca "nashcloud_monitor_agent/src/cmd"
+	ci "nashcloud_monitor_agent/src/crust_info"
+	lt "nashcloud_monitor_agent/src/tail"
 )
 
 func init() {
@@ -32,7 +32,7 @@ func init() {
 	log.Info("crust log file :", crust)
 	log.Info("===============search crust logs is fine===============")
 	messages := make(chan string, 1)
-	go lt.Stream(crustSmanager, messages)
+	lt.Stream(crustSmanager, messages)
 	//go lt.Stream(crustSworker, messages)
 	//go lt.Stream(crustApiPath, messages)
 	for message := range messages {

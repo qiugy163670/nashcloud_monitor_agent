@@ -2,7 +2,7 @@ package utils
 
 import (
 	log "github.com/cihub/seelog"
-	"nashcloud_monitor_agent_sync/src/config"
+	"nashcloud_monitor_agent/src/config"
 	"net"
 	"os"
 )

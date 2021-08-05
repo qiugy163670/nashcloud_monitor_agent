@@ -10,8 +10,8 @@ import (
 	"github.com/shirou/gopsutil/load"
 	"github.com/shirou/gopsutil/mem"
 	"github.com/shirou/gopsutil/net"
-	"nashcloud_monitor_agent_sync/src/config"
-	"nashcloud_monitor_agent_sync/src/utils"
+	"nashcloud_monitor_agent/src/config"
+	"nashcloud_monitor_agent/src/utils"
 	"os"
 )
 

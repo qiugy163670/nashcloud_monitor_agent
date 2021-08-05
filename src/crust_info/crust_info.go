@@ -2,7 +2,7 @@ package crust_info
 
 import (
 	"fmt"
-	ca "nashcloud_monitor_agent_sync/src/cmd"
+	ca "nashcloud_monitor_agent/src/cmd"
 	"strings"
 )
 
