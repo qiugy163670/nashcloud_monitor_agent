@@ -3,7 +3,6 @@ package agent
 import (
 	"config"
 	"constants"
-	"fmt"
 	log "github.com/cihub/seelog"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/shirou/gopsutil/cpu"
@@ -23,7 +22,6 @@ func Init() {
 }
 
 func collectDiskSpace(partition disk.PartitionStat, stat *disk.UsageStat) {
-	fmt.Println("7777777777777")
 	tmpName, _ := os.Hostname()
 	dateTime := time.Now().Unix()
 	db, err := config.GetDBConnection()
@@ -44,7 +42,6 @@ func collectDiskSpace(partition disk.PartitionStat, stat *disk.UsageStat) {
 }
 
 func collectDiskDetail(name string, diskIoInfo disk.IOCountersStat) {
-	fmt.Println("8888888888888888")
 	tmpName, _ := os.Hostname()
 	dateTime := time.Now().Unix()
 	db, err := config.GetDBConnection()
@@ -65,7 +62,6 @@ func collectDiskDetail(name string, diskIoInfo disk.IOCountersStat) {
 }
 
 func collectJob() {
-	fmt.Println("99999999999999999")
 	Init()
 	defer log.Flush()
 
