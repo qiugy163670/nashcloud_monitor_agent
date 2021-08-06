@@ -3,7 +3,7 @@ package cmd
 import (
 	"bufio"
 	"container/list"
-	"fmt"
+	fmt "fmt"
 	"os"
 	"os/exec"
 )

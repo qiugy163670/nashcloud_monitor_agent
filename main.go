@@ -1,10 +1,10 @@
 package main
 
 import (
-	"nashcloud_monitor_agent/src/agent"
+	log "github.com/cihub/seelog"
 	_ "nashcloud_monitor_agent/src/init"
 )
 
 func main() {
-	go agent.ExecuteTask()
+	defer log.Info("exit")
 }

@@ -3,6 +3,7 @@ package tail
 import (
 	log "github.com/cihub/seelog"
 	"io"
+	//"nashcloud_monitor_agent/src/agent"
 	"os"
 	"runtime"
 	"strings"
