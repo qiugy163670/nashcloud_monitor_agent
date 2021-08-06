@@ -10,8 +10,8 @@ import (
 
 const (
 	//数据库链接
-	dbUrl = "nashcloud_test:Nashtest345@tcp(rm-uf66a0j64jv59cbeqvo.mysql.rds.aliyuncs.com:3306)/nashcloud_test?charset=utf8"
-	//dbUrl = "nashcloud_product:Nash789product@tcp(rm-uf66a0j64jv59cbeqvo.mysql.rds.aliyuncs.com:3306)/nashcloud_product?charset=utf8"
+	//dbUrl = "nashcloud_test:Nashtest345@tcp(rm-uf66a0j64jv59cbeqvo.mysql.rds.aliyuncs.com:3306)/nashcloud_test?charset=utf8"
+	dbUrl  = "nashcloud_product:Nash789product@tcp(rm-uf66a0j64jv59cbeqvo.mysql.rds.aliyuncs.com:3306)/nashcloud_product?charset=utf8"
 	dbType = "mysql"
 )
 
