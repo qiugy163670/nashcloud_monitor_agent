@@ -1,15 +1,3 @@
-Last login: Mon Aug  2 22:05:56 on ttys001
-➜  ~ cd Documents
-➜  Documents ls
-20130509153921131副本.pdf                        diandi.txt                                       study_project                                    国际证券
-2020春节动向.numbers                             dump.rdb                                         tools                                            教育培训
-VPProjects                                       livactor-key-pair-beijing.pem                    work                                             纳什研究院
-]{I9RXP8Q[CVY~AAAOE]3DF.jpg                      nash官网内容.docx                                孙千茵_resume.pdf                                个人设计合同.pdf
-archetype-catalog.xml                            onlinevisaapplicationform_6_02-05-2012副本.pdf   北京鹏程                                         英语培训网站.sketch
-➜  Documents cd 纳什研究院/ls
-cd: no such file or directory: 纳什研究院/ls
-➜  Documents ls
-20130509153921131副本.pdf                        diandi.txt                                       study_project                                    国际证券
 *#*#
 *.#*
 *.iml
