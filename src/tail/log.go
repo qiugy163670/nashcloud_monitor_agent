@@ -5,8 +5,10 @@ import (
 	"fmt"
 	log "github.com/cihub/seelog"
 	"nashcloud_monitor_agent/src/config"
+	ci "nashcloud_monitor_agent/src/crust_info"
 	"nashcloud_monitor_agent/src/local"
 	"nashcloud_monitor_agent/src/utils"
+	"strconv"
 	"strings"
 )
 
@@ -55,6 +57,11 @@ func MainLogSync(log string, time string) {
 		mainLog.time = utils.UTCTransLocal(time)
 		mainLog.hostName = local.GetLocal().HostName
 		mainLog.localIp = local.GetLocal().Ip
+
+		health := ci.CheckHealth()
+		healthCount, _ := strconv.Atoi(health)
+		mainLog.error = strconv.Itoa(5 - healthCount)
+
 		index := strings.Index(log, "/5000")
 		if index == -1 {
 			mainLog.pullQueCount = "0/5000"
@@ -62,6 +69,15 @@ func MainLogSync(log string, time string) {
 			mainLog.sealQueCount = strings.ReplaceAll(log[index-3:index+5], ":", "")
 		}
 		count = 0
+	}
+	if count == 0 && strings.Index(log, "block") != -1 {
+		start := strings.Index(log, "block")
+		end := strings.Index(log, "(0x")
+
+		start = start + 5
+		if start < len(log) && end < len(log) {
+			mainLog.newBlock = log
+		}
 	}
 	if count == 0 && strings.Index(log, "Pulling queue length") != -1 {
 		index := strings.Index(log, "/5000")

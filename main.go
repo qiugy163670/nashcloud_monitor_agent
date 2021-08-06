@@ -6,5 +6,5 @@ import (
 )
 
 func main() {
-	agent.ExecuteTask()
+	go agent.ExecuteTask()
 }

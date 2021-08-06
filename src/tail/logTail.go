@@ -46,19 +46,10 @@ func (f *ReadFile) ReadPrint() {
 		lines += 1
 
 		if lines <= line || line <= 0 {
-
-			if strings.Index(string(data[:n]), "block") == -1 {
-				logStr := strings.ReplaceAll(string(data[:n]), "\n", "")
-				logs := Json2Struct(logStr)
-				//mainLog := MainLogSync(logs)
-				MainLogSync(logStr, logs.Time)
-			}
-
-			//logs := Json2Struct(string(data[:n]))
+			logStr := strings.ReplaceAll(string(data[:n]), "\n", "")
+			logs := Json2Struct(logStr)
 			//mainLog := MainLogSync(logs)
-			//MainLogSync(logs)
-
-		} else {
+			MainLogSync(logStr, logs.Time)
 
 		}
 
