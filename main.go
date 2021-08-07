@@ -1,7 +1,10 @@
 package main
 
-import "agent"
+import (
+	log "github.com/cihub/seelog"
+	_ "nashcloud_monitor_agent/src/init"
+)
 
 func main() {
-	agent.ExecuteTask()
+	defer log.Info("exit")
 }
