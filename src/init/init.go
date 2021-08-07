@@ -10,39 +10,15 @@ import (
 	"os"
 )
 
-func init() {
+func startCrustLog() {
 	messages := make(chan string, 1)
-	//agent.ExecuteTask()
-	hostName, _ := os.Hostname()
-	ip := utils.GetHostIp()
-	local.GetLocal().Ip = ip
-	local.GetLocal().HostName = hostName
-	log.Info("===============agent start ===============")
-	log.Info(ip)
-	log.Info(hostName)
-	log.Info("checking docker ")
-
 	container := ci.GetContainer()
-	//for k, v := range container {
-	//	log.Info(k, "---", v)
-	//}
-
-	log.Info("===============check docker is fine=============== ")
-	//log.Info("===============search crust logs===============")
-
 	//crustApiPath := getCrustLogsPath(container["crust-api"])
 	//ipfs := getCrustLogsPath(container["ipfs"])
 	//crustSworker := getCrustLogsPath(container["crust-sworker-a"])
 	crustSmanager := getCrustLogsPath(container["crust-smanager"])
 	//crust := getCrustLogsPath(container["crust"])
 
-	//log.Info("api log file :", crustApiPath)
-	//log.Info("ipfs log file :", ipfs)
-	//log.Info("crustSworker log file :", crustSworker)
-	//log.Info("crustSmanager log file :", crustSmanager)
-	//log.Info("crust log file :", crust)
-	//log.Info("===============search crust logs is fine===============")
-	//messages := make(chan string, 1)
 	lt.Stream(crustSmanager, messages)
 	//go lt.Stream(crustSworker, messages)
 	//go lt.Stream(crustApiPath, messages)
@@ -50,6 +26,16 @@ func init() {
 		log.Info("received", message)
 	}
 
+}
+func init() {
+	hostName, _ := os.Hostname()
+	ip := utils.GetHostIp()
+	local.GetLocal().Ip = ip
+	local.GetLocal().HostName = hostName
+	log.Info("===============agent start ===============")
+	log.Info(ip)
+	log.Info(hostName)
+	startCrustLog()
 }
 
 func getCrustLogsPath(id string) string {

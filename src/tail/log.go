@@ -49,8 +49,10 @@ func logPush(mainLog MainLog) {
 
 var mainLog MainLog
 var count = -1
+var timeCount = 0
 
 func MainLogSync(log string, time string) {
+
 	//Checking pulling queue start
 	if strings.Index(log, "Sealing queue length") != -1 {
 		mainLog.time = utils.UTCTransLocal(time)
@@ -109,9 +111,16 @@ func MainLogSync(log string, time string) {
 	if strings.Index(log, "Checking pulling queue end") != -1 {
 		fmt.Println(mainLog)
 		logPush(mainLog)
-		agent.CollectJob()
+
 		//mainLog = MainLog{}
 		count = -1
+		fmt.Println(timeCount)
+		if timeCount < 5 {
+			timeCount++
+		} else {
+			agent.CollectJob()
+			timeCount = 0
+		}
 	}
 }
 
