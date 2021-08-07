@@ -40,7 +40,7 @@ func logPush(mainLog MainLog) {
 		log.Error("prepare add host indicator failed: %s from %s", err.Error())
 		return
 	}
-	_, err = stmt.Exec(mainLog.localIp, mainLog.hostName, mainLog.pullQueCount, mainLog.smallTaskCount, mainLog.bigTaskCount, mainLog.sealQueCount, "nil", "nil")
+	_, err = stmt.Exec(mainLog.localIp, mainLog.hostName, mainLog.pullQueCount, mainLog.smallTaskCount, mainLog.bigTaskCount, mainLog.sealQueCount, mainLog.newBlock, "nil")
 	if err != nil {
 		log.Error("prepare add host indicator failed: %s from %s", err.Error())
 		return
@@ -77,7 +77,7 @@ func MainLogSync(log string, time string) {
 
 		start = start + 5
 		if start < len(log) && end < len(log) {
-			mainLog.newBlock = log
+			mainLog.newBlock = log[start:end]
 		}
 	}
 	if count == 0 && strings.Index(log, "Pulling queue length") != -1 {
@@ -114,7 +114,7 @@ func MainLogSync(log string, time string) {
 
 		//mainLog = MainLog{}
 		count = -1
-		fmt.Println(timeCount)
+		//fmt.Println(timeCount)
 		if timeCount < 5 {
 			timeCount++
 		} else {
