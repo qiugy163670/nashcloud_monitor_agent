@@ -1,11 +1,10 @@
 package utils
 
 import (
-	"config"
+	log "github.com/cihub/seelog"
+	"nashcloud_monitor_agent/src/config"
 	"net"
 	"os"
-
-	log "github.com/cihub/seelog"
 )
 
 var hostIp string = ""
