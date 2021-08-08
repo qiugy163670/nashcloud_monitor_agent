@@ -6,8 +6,10 @@ import (
 	log "github.com/cihub/seelog"
 	"nashcloud_monitor_agent/src/agent"
 	"nashcloud_monitor_agent/src/config"
+	ci "nashcloud_monitor_agent/src/crust_info"
 	"nashcloud_monitor_agent/src/local"
 	"nashcloud_monitor_agent/src/utils"
+	"strconv"
 	"strings"
 )
 
@@ -59,9 +61,9 @@ func MainLogSync(log string, time string) {
 		mainLog.hostName = local.GetLocal().HostName
 		mainLog.localIp = local.GetLocal().Ip
 
-		//health := ci.CheckHealth()
-		//healthCount, _ := strconv.Atoi(health)
-		//mainLog.error = strconv.Itoa(5 - healthCount)
+		health := ci.CheckHealth()
+		healthCount, _ := strconv.Atoi(health)
+		mainLog.error = strconv.Itoa(5 - healthCount)
 
 		index := strings.Index(log, "/5000")
 		if index == -1 {

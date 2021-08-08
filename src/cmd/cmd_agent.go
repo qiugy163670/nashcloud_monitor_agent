@@ -19,7 +19,7 @@ type ProcessAgentCheck struct {
 }
 
 func init() {
-	fmt.Println("cmd_agent is init")
+	//fmt.Println("cmd_agent is init")
 }
 
 func (c *ProcessAgentCheck) ExecCmd(cmdStr string) (error, list.List) {

@@ -29,12 +29,12 @@ func collectDiskSpace(partition disk.PartitionStat, stat *disk.UsageStat) {
 		log.Errorf("get db connection failed: %s from %s", err.Error(), tmpName)
 		return
 	}
-	stmt, err := db.Prepare("insert into monitor_disk_partition (`name`,host_name,mount,disk_total,disk_used,disk_free,inode_total,inode_used,inode_free,date_time) values (?,?,?,?,?,?,?,?,?,?)")
+	stmt, err := db.Prepare("insert into monitor_disk_partition (`name`,host_name,mount,disk_total,disk_used,disk_free,inode_total,inode_used,inode_free,date_time,host_ip) values (?,?,?,?,?,?,?,?,?,?,?)")
 	if err != nil {
 		log.Errorf("prepare add disk partition detail failed: %s from %s", err.Error(), tmpName)
 		return
 	}
-	_, err = stmt.Exec(partition.Device, tmpName, partition.Mountpoint, stat.Total, stat.Used, stat.Free, stat.InodesTotal, stat.InodesUsed, stat.InodesFree, dateTime-dateTime%300)
+	_, err = stmt.Exec(partition.Device, tmpName, partition.Mountpoint, stat.Total, stat.Used, stat.Free, stat.InodesTotal, stat.InodesUsed, stat.InodesFree, dateTime-dateTime%300, utils.GetHostIp())
 	if err != nil {
 		log.Errorf("add disk partition detail failed: %s from %s", err.Error(), tmpName)
 		return
@@ -49,12 +49,12 @@ func collectDiskDetail(name string, diskIoInfo disk.IOCountersStat) {
 		log.Errorf("get db connection failed: %s from %s", err.Error(), tmpName)
 		return
 	}
-	stmt, err := db.Prepare("insert into monitor_disk_info (`name`,host_name,serial_num,read_count,write_count,read_bytes,write_bytes,read_time,write_time,io_time, weight_io, date_time) values (?,?,?,?,?,?,?,?,?,?,?,?)")
+	stmt, err := db.Prepare("insert into monitor_disk_info (`name`,host_name,serial_num,read_count,write_count,read_bytes,write_bytes,read_time,write_time,io_time, weight_io, date_time,host_ip) values (?,?,?,?,?,?,?,?,?,?,?,?,?)")
 	if err != nil {
 		log.Errorf("prepare add disk info detail failed: %s from %s", err.Error(), tmpName)
 		return
 	}
-	_, err = stmt.Exec(name, tmpName, diskIoInfo.SerialNumber, diskIoInfo.ReadCount, diskIoInfo.WriteCount, diskIoInfo.ReadBytes, diskIoInfo.WriteBytes, diskIoInfo.ReadTime, diskIoInfo.WriteTime, diskIoInfo.IoTime, diskIoInfo.WeightedIO, dateTime-dateTime%300)
+	_, err = stmt.Exec(name, tmpName, diskIoInfo.SerialNumber, diskIoInfo.ReadCount, diskIoInfo.WriteCount, diskIoInfo.ReadBytes, diskIoInfo.WriteBytes, diskIoInfo.ReadTime, diskIoInfo.WriteTime, diskIoInfo.IoTime, diskIoInfo.WeightedIO, dateTime-dateTime%300, utils.GetHostIp())
 	if err != nil {
 		log.Errorf("add disk info detail failed: %s from %s", err.Error(), tmpName)
 		return
@@ -83,7 +83,7 @@ func collectJob() {
 		return
 	}
 	var hostName, hostIp, os, platform, platformVersion, kernelVersion string
-	err = db.QueryRow("select host_name, host_ip, os, platform, platform_version, kernel_version from nash_servers where `host_name` = ?", hostInfos.Hostname).Scan(&hostName, &hostIp, &os, &platform, &platformVersion, &kernelVersion)
+	err = db.QueryRow("select host_name, host_ip, os, platform, platform_version, kernel_version from nash_servers where `host_ip` = ?", utils.GetHostIp()).Scan(&hostName, &hostIp, &os, &platform, &platformVersion, &kernelVersion)
 	if err != nil {
 		if strings.Contains(err.Error(), constants.NO_ROWS_IN_DB) {
 			stmt, err := db.Prepare("insert into nash_servers (host_name, host_ip, os, platform, platform_version, kernel_version, company) values (?,?,?,?,?,?,?)")

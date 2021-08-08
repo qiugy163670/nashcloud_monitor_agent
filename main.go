@@ -6,5 +6,6 @@ import (
 )
 
 func main() {
+
 	defer log.Info("exit")
 }
