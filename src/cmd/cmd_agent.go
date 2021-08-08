@@ -3,7 +3,7 @@ package cmd
 import (
 	"bufio"
 	"container/list"
-	"fmt"
+	fmt "fmt"
 	"os"
 	"os/exec"
 )
@@ -19,7 +19,7 @@ type ProcessAgentCheck struct {
 }
 
 func init() {
-	fmt.Println("cmd_agent is init")
+	//fmt.Println("cmd_agent is init")
 }
 
 func (c *ProcessAgentCheck) ExecCmd(cmdStr string) (error, list.List) {
