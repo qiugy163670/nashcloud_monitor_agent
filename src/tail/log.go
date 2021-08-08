@@ -1,13 +1,13 @@
 package tail
 
 import (
-	"encoding/json"
 	"fmt"
 	log "github.com/cihub/seelog"
 	"nashcloud_monitor_agent/src/agent"
 	"nashcloud_monitor_agent/src/config"
+	ci "nashcloud_monitor_agent/src/crust_info"
 	"nashcloud_monitor_agent/src/local"
-	"nashcloud_monitor_agent/src/utils"
+	"strconv"
 	"strings"
 )
 
@@ -40,7 +40,7 @@ func logPush(mainLog MainLog) {
 		log.Error("prepare add host indicator failed: %s from %s", err.Error())
 		return
 	}
-	_, err = stmt.Exec(mainLog.localIp, mainLog.hostName, mainLog.pullQueCount, mainLog.smallTaskCount, mainLog.bigTaskCount, mainLog.sealQueCount, "nil", "nil")
+	_, err = stmt.Exec(mainLog.localIp, mainLog.hostName, mainLog.pullQueCount, mainLog.smallTaskCount, mainLog.bigTaskCount, mainLog.sealQueCount, mainLog.newBlock, "nil")
 	if err != nil {
 		log.Error("prepare add host indicator failed: %s from %s", err.Error())
 		return
@@ -51,17 +51,17 @@ var mainLog MainLog
 var count = -1
 var timeCount = 0
 
-func MainLogSync(log string, time string) {
+func MainLogSync(log string, time string) int {
 
 	//Checking pulling queue start
-	if strings.Index(log, "Sealing queue length") != -1 {
-		mainLog.time = utils.UTCTransLocal(time)
+	if count == -1 && strings.Index(log, "Sealing queue length") != -1 {
+		mainLog.time = time //utils.UTCTransLocal(time)
 		mainLog.hostName = local.GetLocal().HostName
 		mainLog.localIp = local.GetLocal().Ip
 
-		//health := ci.CheckHealth()
-		//healthCount, _ := strconv.Atoi(health)
-		//mainLog.error = strconv.Itoa(5 - healthCount)
+		health := ci.CheckHealth()
+		healthCount, _ := strconv.Atoi(health)
+		mainLog.error = strconv.Itoa(5 - healthCount)
 
 		index := strings.Index(log, "/5000")
 		if index == -1 {
@@ -74,10 +74,9 @@ func MainLogSync(log string, time string) {
 	if count == 0 && strings.Index(log, "block") != -1 {
 		start := strings.Index(log, "block")
 		end := strings.Index(log, "(0x")
-
 		start = start + 5
 		if start < len(log) && end < len(log) {
-			mainLog.newBlock = log
+			mainLog.newBlock = log[start:end]
 		}
 	}
 	if count == 0 && strings.Index(log, "Pulling queue length") != -1 {
@@ -108,13 +107,12 @@ func MainLogSync(log string, time string) {
 		}
 		count++
 	}
-	if strings.Index(log, "Checking pulling queue end") != -1 {
+	tempCount := 0
+	if count == 3 && strings.Index(log, "Checking pulling queue end") != -1 {
 		fmt.Println(mainLog)
 		logPush(mainLog)
-
-		//mainLog = MainLog{}
+		tempCount = count
 		count = -1
-		fmt.Println(timeCount)
 		if timeCount < 5 {
 			timeCount++
 		} else {
@@ -122,10 +120,5 @@ func MainLogSync(log string, time string) {
 			timeCount = 0
 		}
 	}
-}
-
-func Json2Struct(jsonStr string) Log {
-	var log Log
-	json.Unmarshal([]byte(jsonStr), &log)
-	return log
+	return tempCount
 }
