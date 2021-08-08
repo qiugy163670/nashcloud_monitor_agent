@@ -84,7 +84,7 @@ func Stream(path string, m chan string) {
 			time.Sleep(time.Duration(200) * time.Microsecond)
 
 		} else {
-			time.Sleep(time.Duration(40) * time.Second)
+			time.Sleep(time.Duration(45) * time.Second)
 		}
 		if !follow {
 			break
