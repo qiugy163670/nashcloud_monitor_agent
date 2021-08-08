@@ -3,10 +3,9 @@ package tail
 import (
 	log "github.com/cihub/seelog"
 	"io"
-	//"nashcloud_monitor_agent/src/agent"
 	"os"
 	"runtime"
-	"strings"
+	"time"
 )
 
 import (
@@ -23,7 +22,7 @@ func (f *ReadFile) gbkDecode() {
 	f.gbkFile = decoder.NewReader(f.file)
 }
 
-func (f *ReadFile) ReadPrint() {
+func (f *ReadFile) ReadPrint() int {
 	var n int
 	var err error
 	data := make([]byte, 1<<16)
@@ -35,30 +34,28 @@ func (f *ReadFile) ReadPrint() {
 	}
 	switch err {
 	case nil:
-		var lines int
+		var lines = 0
 		out := data
-		indexs := make(map[int]int)
-		for i, d := range out {
+		for _, d := range out {
 			if d == '\n' {
 				lines++
-				indexs[lines] = i
+				lines += 1
 			}
 		}
-		lines += 1
 
 		if lines <= line || line <= 0 {
-			logStr := strings.ReplaceAll(string(data[:n]), "\n", "")
-			logs := Json2Struct(logStr)
-			//mainLog := MainLogSync(logs)
-			MainLogSync(logStr, logs.Time)
-
+			logStr := string(data[:n])
+			//fmt.Println(logStr)
+			sync := MainLogSync(logStr, time.Now().String())
+			return sync
 		}
 
 	case io.EOF:
 	default:
 		log.Info(err)
-		return
+		return 0
 	}
+	return 0
 }
 
 var (
@@ -75,19 +72,23 @@ func Stream(path string, m chan string) {
 	var err error
 	var readFile ReadFile
 	readFile.file, err = os.Open(path)
-	//readFile.file, err = os.Open(flag.Arg(0))
 	if err != nil {
 		log.Info(err)
 		return
 	}
-
 	defer readFile.file.Close()
-	defer close(m)
 	for {
-		readFile.ReadPrint()
+		readPrint := readFile.ReadPrint()
+		//fmt.Println(readPrint)
+		if readPrint != 3 {
+			time.Sleep(time.Duration(200) * time.Microsecond)
+
+		} else {
+			time.Sleep(time.Duration(40) * time.Second)
+		}
 		if !follow {
-			m <- "exit"
 			break
 		}
+
 	}
 }

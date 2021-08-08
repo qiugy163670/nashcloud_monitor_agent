@@ -50,9 +50,3 @@ func (c *Conf) GetConf(fileName string) *Conf {
 	}
 	return c
 }
-
-//func main() {
-//	var c Conf
-//	c.getConf("/opt/crust/crust-node/config.yaml")
-//	fmt.Println(c.Identity.Backup)
-//}

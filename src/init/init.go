@@ -1,6 +1,7 @@
 package init
 
 import (
+	//"fmt"
 	log "github.com/cihub/seelog"
 	ca "nashcloud_monitor_agent/src/cmd"
 	"nashcloud_monitor_agent/src/config"
@@ -8,7 +9,9 @@ import (
 	"nashcloud_monitor_agent/src/local"
 	lt "nashcloud_monitor_agent/src/tail"
 	"nashcloud_monitor_agent/src/utils"
+	_ "net/http/pprof"
 	"os"
+	"runtime"
 )
 
 func startCrustLog() {
@@ -20,6 +23,10 @@ func startCrustLog() {
 	crustSmanager := getCrustLogsPath(container["crust-smanager"])
 	//crust := getCrustLogsPath(container["crust"])
 
+	//go func() {
+	//	http.ListenAndServe("0.0.0.0:9999", nil)
+	//}()
+	//fmt.Println(crustSmanager)
 	lt.Stream(crustSmanager, messages)
 	//go lt.Stream(crustSworker, messages)
 	//go lt.Stream(crustApiPath, messages)
@@ -29,13 +36,15 @@ func startCrustLog() {
 
 }
 func init() {
+	runtime.GOMAXPROCS(1)
 	hostName, _ := os.Hostname()
 	ip := utils.GetHostIp()
 	local.GetLocal().Ip = ip
 	local.GetLocal().HostName = hostName
 	var c utils.Conf
 	c.GetConf("/opt/crust/crust-node/config.yaml")
-	backupJson := utils.Json2Struct(c.Identity.Backup)
+	var backupJson utils.BackupJson
+	backupJson = utils.Json2Struct(c.Identity.Backup)
 	log.Info("=============== NashCloud Agent start ===============")
 	log.Info(ip)
 	log.Info(hostName)
