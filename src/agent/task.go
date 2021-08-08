@@ -120,6 +120,22 @@ func collectJob() {
 		log.Errorf("get cpu info failed: %s from %s", err.Error(), tmpName)
 		return
 	}
+	//cpu是累加值，计算本次cpu值
+	var cpuUser, cpuSys, cpuIdle, cpuIOwait, cpuIrq, cpuSofirq float64 = 0, 0, 0, 0, 0, 0
+	err = db.QueryRow("select net_bytes_rev,net_bytes_send,net_package_rev,net_package_send,net_drop_rev,net_drop_send from net_record where `name` = ?", constants.CPU).Scan(&cpuUser, &cpuSys, &cpuIdle, &cpuIOwait, &cpuIrq, &cpuSofirq)
+	if err != nil {
+		log.Errorf("get last cpu info failed: %s from %s", err.Error(), tmpName)
+		return
+	}
+	stmt, err := db.Prepare("update net_record set net_bytes_rev = ?, net_bytes_send = ?, net_package_rev = ?, net_package_send = ?, net_drop_rev = ?, net_drop_send = ? where `name` = ?")
+	if err != nil {
+		log.Errorf("prepare update current cpu info failed: %s from %s", err.Error(), tmpName)
+	} else {
+		_, err := stmt.Exec(cpuInfos[0].User, cpuInfos[0].System, cpuInfos[0].Idle, cpuInfos[0].Iowait, cpuInfos[0].Irq, cpuInfos[0].Softirq)
+		if err != nil {
+			log.Errorf("formal update cpu info failed: %s from %s", err.Error(), tmpName)
+		}
+	}
 	//获取负载信息
 	loadInfo, err := load.Avg()
 	if err != nil {
@@ -164,7 +180,7 @@ func collectJob() {
 		return
 	}
 	//更新累加值
-	stmt, err := db.Prepare("update net_record set net_bytes_rev = ?, net_bytes_send = ?, net_package_rev = ?, net_package_send = ?, net_drop_rev = ?, net_drop_send = ?, net_error_rev = ?, net_error_send = ? where `name` = ?")
+	stmt, err = db.Prepare("update net_record set net_bytes_rev = ?, net_bytes_send = ?, net_package_rev = ?, net_package_send = ?, net_drop_rev = ?, net_drop_send = ?, net_error_rev = ?, net_error_send = ? where `name` = ?")
 	if err != nil {
 		log.Errorf("prepare update net record disk io total failed: %s from %s", err.Error(), tmpName)
 		return
@@ -195,7 +211,7 @@ func collectJob() {
 		return
 	}
 	//先查询上次累加值
-	var netBytesRev, netBytesSend, netPackageRev, netPackageSend, netDropRev, netDropSend, netErrorRev, netErrorSend uint64
+	var netBytesRev, netBytesSend, netPackageRev, netPackageSend, netDropRev, netDropSend, netErrorRev, netErrorSend uint64 = 0, 0, 0, 0, 0, 0, 0, 0
 	err = db.QueryRow("select net_bytes_rev,net_bytes_send,net_package_rev,net_package_send,net_drop_rev,net_drop_send,net_error_rev,net_error_send from net_record where `name` = ?", constants.NET).Scan(&netBytesRev, &netBytesSend, &netPackageRev, &netPackageSend, &netDropRev, &netDropSend, &netErrorRev, &netErrorSend)
 	if err != nil {
 		log.Errorf("get net last record failed: %s from %s", err.Error(), tmpName)
@@ -220,10 +236,10 @@ func collectJob() {
 		return
 	}
 	_, err = stmt.Exec(hostName, tmpIp, hostInfos.Procs,
-		cpuInfos[0].User, cpuInfos[0].System, cpuInfos[0].Idle, cpuInfos[0].Iowait, cpuInfos[0].Irq, cpuInfos[0].Softirq,
+		cpuInfos[0].User-cpuUser, cpuInfos[0].System-cpuSys, cpuInfos[0].Idle-cpuIdle, cpuInfos[0].Iowait-cpuIOwait, cpuInfos[0].Irq-cpuIrq, cpuInfos[0].Softirq-cpuSofirq,
 		loadInfo.Load1, loadInfo.Load5, loadInfo.Load15, loadMisInfo.ProcsTotal, loadMisInfo.ProcsRunning,
 		swapMemInfo.Total, swapMemInfo.Used, swapMemInfo.Free, swapMemInfo.UsedPercent, virtualMemInfo.Total, virtualMemInfo.Used, virtualMemInfo.Free, virtualMemInfo.UsedPercent,
-		(netInfo[0].BytesRecv-netBytesRev)/300, (netInfo[0].BytesSent-netBytesSend)/300, 100*(netInfo[0].Dropin-netDropRev)/(netInfo[0].PacketsRecv-netPackageRev), 100*(netInfo[0].Dropout-netDropSend)/(netInfo[0].PacketsSent-netPackageSend), 100*(netInfo[0].Errin-netErrorRev)/(netInfo[0].PacketsRecv-netPackageRev), 100*(netInfo[0].Errout-netErrorSend)/(netInfo[0].PacketsSent-netPackageSend),
+		(netInfo[0].BytesRecv-netBytesRev)/300, (netInfo[0].BytesSent-netBytesSend)/300, (netInfo[0].PacketsRecv-netPackageRev)/300, (netInfo[0].PacketsSent-netPackageSend)/300, (netInfo[0].Dropin-netDropRev)/300, (netInfo[0].Dropout-netDropSend)/300, (netInfo[0].Errin-netErrorRev)/300, (netInfo[0].Errout-netErrorSend)/300,
 		(readCount-diskReadCount)/300, (writeCount-diskWriteCount)/300, (readBytes-diskReadBytes)/300, (writeBytes-diskWriteBytes)/300, (readTime-diskReadTime)/300, (writeTime-diskWriteTime)/300, (ioTime-diskIoTime)/300,
 		diskTotal, diskUsed, diskFree, inodeTotal, inodeUsed, inodeFree, stp-stp%300)
 	if err != nil {
