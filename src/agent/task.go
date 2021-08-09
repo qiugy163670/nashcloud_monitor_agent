@@ -26,7 +26,10 @@ func collectDiskSpace(partition disk.PartitionStat, stat *disk.UsageStat) {
 	dateTime := time.Now().Unix()
 	db, err := config.GetDBConnection()
 	if err != nil {
-		log.Errorf("get db connection failed: %s from %s", err.Error(), tmpName)
+		err := log.Errorf("get db connection failed: %s from %s", err.Error(), tmpName)
+		if err != nil {
+			return
+		}
 		return
 	}
 	stmt, err := db.Prepare("insert into monitor_disk_partition (`name`,host_name,mount,disk_total,disk_used,disk_free,inode_total,inode_used,inode_free,date_time,host_ip) values (?,?,?,?,?,?,?,?,?,?,?)")
@@ -36,7 +39,10 @@ func collectDiskSpace(partition disk.PartitionStat, stat *disk.UsageStat) {
 	}
 	_, err = stmt.Exec(partition.Device, tmpName, partition.Mountpoint, stat.Total, stat.Used, stat.Free, stat.InodesTotal, stat.InodesUsed, stat.InodesFree, dateTime-dateTime%300, utils.GetHostIp())
 	if err != nil {
-		log.Errorf("add disk partition detail failed: %s from %s", err.Error(), tmpName)
+		err := log.Errorf("add disk partition detail failed: %s from %s", err.Error(), tmpName)
+		if err != nil {
+			return
+		}
 		return
 	}
 }
