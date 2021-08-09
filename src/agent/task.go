@@ -1,8 +1,6 @@
 package agent
 
 import (
-	"config"
-	"constants"
 	log "github.com/cihub/seelog"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/shirou/gopsutil/cpu"
@@ -11,7 +9,6 @@ import (
 	"github.com/shirou/gopsutil/load"
 	"github.com/shirou/gopsutil/mem"
 	"github.com/shirou/gopsutil/net"
-	"utils"
 
 	"nashcloud_monitor_agent/src/config"
 	"nashcloud_monitor_agent/src/constants"

@@ -12,6 +12,7 @@ import (
 
 func GetAndPushDiskInfo() {
 	disks := getDisks()
+
 	db, err := config.GetDBConnection()
 	if err != nil {
 		err := log.Errorf("get db connection failed: %s from %s", err.Error())
@@ -55,7 +56,7 @@ func getDiskSN(path string) string {
 		BinPath: "/bin/sh",
 	}
 	cmd := "hdparm  -I /dev/" + path + " |grep 'Serial Number'"
-	fmt.Println(cmd)
+	//fmt.Println(cmd)
 	err, list := pac.ExecCmd(cmd)
 	if err != nil {
 		fmt.Println(err)
