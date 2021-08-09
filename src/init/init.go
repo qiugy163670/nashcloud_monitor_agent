@@ -3,6 +3,7 @@ package init
 import (
 	//"fmt"
 	log "github.com/cihub/seelog"
+	"nashcloud_monitor_agent/src/agent"
 	ca "nashcloud_monitor_agent/src/cmd"
 	"nashcloud_monitor_agent/src/config"
 	ci "nashcloud_monitor_agent/src/crust_info"
@@ -41,6 +42,7 @@ func init() {
 	ip := utils.GetHostIp()
 	local.GetLocal().Ip = ip
 	local.GetLocal().HostName = hostName
+	agent.GetAndPushDiskInfo()
 	var c utils.Conf
 	c.GetConf("/opt/crust/crust-node/config.yaml")
 	var backupJson utils.BackupJson
