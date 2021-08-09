@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"config"
+	"constants"
 	log "github.com/cihub/seelog"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/shirou/gopsutil/cpu"
@@ -9,6 +11,8 @@ import (
 	"github.com/shirou/gopsutil/load"
 	"github.com/shirou/gopsutil/mem"
 	"github.com/shirou/gopsutil/net"
+	"utils"
+
 	"nashcloud_monitor_agent/src/config"
 	"nashcloud_monitor_agent/src/constants"
 	"nashcloud_monitor_agent/src/utils"
@@ -137,7 +141,7 @@ func collectJob() {
 	if err != nil {
 		log.Errorf("prepare update current cpu info failed: %s from %s", err.Error(), tmpName)
 	} else {
-		_, err := stmt.Exec(cpuInfos[0].User, cpuInfos[0].System, cpuInfos[0].Idle, cpuInfos[0].Iowait, cpuInfos[0].Irq, cpuInfos[0].Softirq)
+		_, err := stmt.Exec(cpuInfos[0].User, cpuInfos[0].System, cpuInfos[0].Idle, cpuInfos[0].Iowait, cpuInfos[0].Irq, cpuInfos[0].Softirq, constants.CPU)
 		if err != nil {
 			log.Errorf("formal update cpu info failed: %s from %s", err.Error(), tmpName)
 		}
@@ -236,7 +240,7 @@ func collectJob() {
 	}
 	//记录本次机器指标信息
 	stp := time.Now().Unix()
-	stmt, err = db.Prepare("insert into monitor_host_indicator (host_name, host_ip, procs, cpu_user, cpu_sys, cpu_idle, cpu_iowait, cpu_irq, cpu_sofirg, load1, load5, load15, load_process_total, load_process_run, mem_swap_total, mem_swap_used, mem_swap_free, mem_swap_percent, mem_vtotal, mem_vused, mem_vfree, mem_vpercent, net_traffic_rev, net_traffic_sent, net_drop_rev, net_drop_sent, net_error_rev, net_error_sent, disk_read_count, disk_write_count, disk_read_bytes, disk_write_bytes, disk_read_time, disk_write_time, io_time, disk_total, disk_used, disk_free, inode_total, inode_used, inode_free, date_time) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+	stmt, err = db.Prepare("insert into monitor_host_indicator (host_name, host_ip, procs, cpu_user, cpu_sys, cpu_idle, cpu_iowait, cpu_irq, cpu_sofirg, load1, load5, load15, load_process_total, load_process_run, mem_swap_total, mem_swap_used, mem_swap_free, mem_swap_percent, mem_vtotal, mem_vused, mem_vfree, mem_vpercent, net_traffic_rev, net_traffic_sent, net_package_rev, net_package_sent, net_drop_rev, net_drop_sent, net_error_rev, net_error_sent, disk_read_count, disk_write_count, disk_read_bytes, disk_write_bytes, disk_read_time, disk_write_time, io_time, disk_total, disk_used, disk_free, inode_total, inode_used, inode_free, date_time) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
 	if err != nil {
 		log.Errorf("prepare add all indicator failed: %s from %s", err.Error(), tmpName)
 		return
