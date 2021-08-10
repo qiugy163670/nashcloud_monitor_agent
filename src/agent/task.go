@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"config"
+	"constants"
 	log "github.com/cihub/seelog"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/shirou/gopsutil/cpu"
@@ -56,7 +58,7 @@ func collectDiskDetail(name string, diskIoInfo disk.IOCountersStat) {
 		log.Errorf("get db connection failed: %s from %s", err.Error(), tmpName)
 		return
 	}
-	stmt, err := db.Prepare("insert into monitor_disk_info (`name`,host_name,serial_num,read_count,write_count,read_bytes,write_bytes,read_time,write_time,io_time, weight_io, date_time,host_ip) values (?,?,?,?,?,?,?,?,?,?,?,?,?)")
+	stmt, err := db.Prepare("insert into monitor_disk_info (`name`,host_name, serial_num,read_count,write_count,read_bytes,write_bytes,read_time,write_time,io_time, weight_io, date_time,host_ip) values (?,?,?,?,?,?,?,?,?,?,?,?,?)")
 	if err != nil {
 		log.Errorf("prepare add disk info detail failed: %s from %s", err.Error(), tmpName)
 		return
@@ -130,7 +132,7 @@ func collectJob() {
 	//cpu是累加值，计算本次cpu值
 	var cpuUser, cpuSys, cpuIdle, cpuIOwait, cpuIrq, cpuSofirq float64 = 0, 0, 0, 0, 0, 0
 	err = db.QueryRow("select net_bytes_rev,net_bytes_send,net_package_rev,net_package_send,net_drop_rev,net_drop_send from net_record where host_ip = ? and `name` = ?", tmpIp, constants.CPU).Scan(&cpuUser, &cpuSys, &cpuIdle, &cpuIOwait, &cpuIrq, &cpuSofirq)
-	if (strings.Contains(err.Error(), constants.NO_ROWS_IN_DB) {
+	if strings.Contains(err.Error(), constants.NO_ROWS_IN_DB) {
 		stmt, err := db.Prepare("insert into net_record (net_bytes_rev,net_bytes_send,net_package_rev,net_package_send,net_drop_rev,net_drop_send,host_ip,name) values (?,?,?,?,?,?,?,?)")
 		if err != nil {
 			log.Errorf("prepare insert net_record of cpu failed: %s from %s", err.Error(), tmpIp)
@@ -193,7 +195,7 @@ func collectJob() {
 	//查询上次累加值
 	var diskReadCount, diskWriteCount, diskReadBytes, diskWriteBytes, diskReadTime, diskWriteTime, diskIoTime, diskWeightIo uint64
 	err = db.QueryRow("select net_bytes_rev,net_bytes_send,net_package_rev,net_package_send,net_drop_rev,net_drop_send,net_error_rev,net_error_send from net_record where host_ip = ? and `name` = ?", tmpIp, constants.DISK_IO_TOTAL).Scan(&diskReadCount, &diskWriteCount, &diskReadBytes, &diskWriteBytes, &diskReadTime, &diskWriteTime, &diskIoTime, &diskWeightIo)
-	if (strings.Contains(err.Error(), constants.NO_ROWS_IN_DB) {
+	if strings.Contains(err.Error(), constants.NO_ROWS_IN_DB) {
 		stmt, err := db.Prepare("insert into net_record (net_bytes_rev,net_bytes_send,net_package_rev,net_package_send,net_drop_rev,net_drop_send,net_error_rev,net_error_send,host_ip,name) values (?,?,?,?,?,?,?,?,?,?)")
 		if err != nil {
 			log.Errorf("prepare insert net_record of disk failed: %s from %s", err.Error(), tmpIp)
@@ -242,7 +244,7 @@ func collectJob() {
 	//先查询上次累加值
 	var netBytesRev, netBytesSend, netPackageRev, netPackageSend, netDropRev, netDropSend, netErrorRev, netErrorSend uint64 = 0, 0, 0, 0, 0, 0, 0, 0
 	err = db.QueryRow("select net_bytes_rev,net_bytes_send,net_package_rev,net_package_send,net_drop_rev,net_drop_send,net_error_rev,net_error_send from net_record where host_ip = ? and `name` = ?", tmpIp, constants.NET).Scan(&netBytesRev, &netBytesSend, &netPackageRev, &netPackageSend, &netDropRev, &netDropSend, &netErrorRev, &netErrorSend)
-	if (strings.Contains(err.Error(), constants.NO_ROWS_IN_DB) {
+	if strings.Contains(err.Error(), constants.NO_ROWS_IN_DB) {
 		stmt, err := db.Prepare("insert into net_record (net_bytes_rev,net_bytes_send,net_package_rev,net_package_send,net_drop_rev,net_drop_send,net_error_rev,net_error_send,host_ip,name) values (?,?,?,?,?,?,?,?,?,?)")
 		if err != nil {
 			log.Errorf("prepare insert net_record of net failed: %s from %s", err.Error(), tmpIp)
