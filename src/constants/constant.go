@@ -6,5 +6,4 @@ const (
 	NET           = "net"
 	DISK_IO_TOTAL = "disk_io_total"
 	CPU           = "CPU"
-	TOTAL         = "total"
 )

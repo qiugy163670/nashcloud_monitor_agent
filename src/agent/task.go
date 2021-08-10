@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"fmt"
 	log "github.com/cihub/seelog"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/shirou/gopsutil/cpu"
@@ -10,6 +11,7 @@ import (
 	"github.com/shirou/gopsutil/mem"
 	"github.com/shirou/gopsutil/net"
 
+	ca "nashcloud_monitor_agent/src/cmd"
 	"nashcloud_monitor_agent/src/config"
 	"nashcloud_monitor_agent/src/constants"
 	"nashcloud_monitor_agent/src/utils"
@@ -22,48 +24,67 @@ func Init() {
 	config.SetupLogger()
 }
 
-func collectDiskSpace(partition disk.PartitionStat, stat *disk.UsageStat) {
-	tmpName, _ := os.Hostname()
-	dateTime := time.Now().Unix()
-	db, err := config.GetDBConnection()
-	if err != nil {
-		err := log.Errorf("get db connection failed: %s from %s", err.Error(), tmpName)
-		if err != nil {
-			return
-		}
-		return
+func getDiskSN(path string) string {
+	pac := ca.ProcessAgentCheck{
+		BinPath: "/bin/sh",
 	}
-	stmt, err := db.Prepare("insert into monitor_disk_partition (`name`,host_name,mount,disk_total,disk_used,disk_free,inode_total,inode_used,inode_free,date_time,host_ip) values (?,?,?,?,?,?,?,?,?,?,?)")
+	cmd := "hdparm  -I /dev/" + path + " |grep 'Serial Number'"
+	//fmt.Println(cmd)
+	err, list := pac.ExecCmd(cmd)
 	if err != nil {
-		log.Errorf("prepare add disk partition detail failed: %s from %s", err.Error(), tmpName)
-		return
+		fmt.Println(err)
 	}
-	_, err = stmt.Exec(partition.Device, tmpName, partition.Mountpoint, stat.Total, stat.Used, stat.Free, stat.InodesTotal, stat.InodesUsed, stat.InodesFree, dateTime-dateTime%300, utils.GetHostIp())
-	if err != nil {
-		err := log.Errorf("add disk partition detail failed: %s from %s", err.Error(), tmpName)
-		if err != nil {
-			return
-		}
-		return
-	}
+	return strings.ReplaceAll(list.Front().Value.(string), "Serial Number:", "")
 }
 
-func collectDiskDetail(name string, diskIoInfo disk.IOCountersStat) {
+func collectDiskIndicator(name, mount string, diskIoInfo disk.IOCountersStat, stat *disk.UsageStat) {
 	tmpName, _ := os.Hostname()
+	tmpIp := utils.GetHostIp()
 	dateTime := time.Now().Unix()
 	db, err := config.GetDBConnection()
 	if err != nil {
-		log.Errorf("get db connection failed: %s from %s", err.Error(), tmpName)
+		log.Errorf("get db connection failed: %s from %s, %s", err.Error(), tmpName, tmpIp)
 		return
 	}
-	stmt, err := db.Prepare("insert into monitor_disk_info (`name`,host_name, serial_num,read_count,write_count,read_bytes,write_bytes,read_time,write_time,io_time, weight_io, date_time,host_ip) values (?,?,?,?,?,?,?,?,?,?,?,?,?)")
+	//查询上次累加值
+	var readCountAcc, writeCountAcc, readBytesAcc, writeBytesAcc, readTimeAcc, writeTimeAcc, ioTimeAcc, weightedIoAcc uint64 = 0, 0, 0, 0, 0, 0, 0, 0
+	err = db.QueryRow("select net_bytes_rev,net_bytes_send,net_package_rev,net_package_send,net_drop_rev,net_drop_send,net_error_rev,net_error_send from net_record where host_ip = ? and `name` = ?", tmpIp, name).Scan(&readCountAcc, &writeCountAcc, &readBytesAcc, &writeBytesAcc, &readTimeAcc, &writeTimeAcc, &ioTimeAcc, &weightedIoAcc)
 	if err != nil {
-		log.Errorf("prepare add disk info detail failed: %s from %s", err.Error(), tmpName)
+		if strings.Contains(err.Error(), constants.NO_ROWS_IN_DB) {
+			stmt, err := db.Prepare("insert into net_record (name,host_ip,net_bytes_rev,net_bytes_send,net_package_rev,net_package_send,net_drop_rev,net_drop_send,net_error_rev,net_error_send) values (?,?,?,?,?,?,?,?,?,?)")
+			if err != nil {
+				log.Errorf("prepare insert net_record of self_disk failed: %s from %s", err.Error(), tmpName)
+				return
+			} else {
+				_, err := stmt.Exec(name, tmpIp, diskIoInfo.ReadCount, diskIoInfo.WriteCount, diskIoInfo.ReadBytes, diskIoInfo.WriteBytes, diskIoInfo.ReadTime, diskIoInfo.WriteTime, diskIoInfo.IoTime, diskIoInfo.WeightedIO)
+				if err != nil {
+					log.Errorf("formal net_record of self_disk failed: %s from %s", err.Error(), tmpName)
+				}
+			}
+		} else {
+			log.Errorf("get self_disk total last record failed: %s from %s", err.Error(), tmpName)
+			return
+		}
+	}
+	//更新累加值
+	stmt, err = db.Prepare("update net_record set net_bytes_rev = ?, net_bytes_send = ?, net_package_rev = ?, net_package_send = ?, net_drop_rev = ?, net_drop_send = ?, net_error_rev = ?, net_error_send = ? where host_ip = ? and `name` = ?")
+	if err != nil {
+		log.Errorf("prepare update net monitor_disk_history self_disk io total failed: %s from %s", err.Error(), tmpName)
 		return
 	}
-	_, err = stmt.Exec(name, tmpName, diskIoInfo.SerialNumber, diskIoInfo.ReadCount, diskIoInfo.WriteCount, diskIoInfo.ReadBytes, diskIoInfo.WriteBytes, diskIoInfo.ReadTime, diskIoInfo.WriteTime, diskIoInfo.IoTime, diskIoInfo.WeightedIO, dateTime-dateTime%300, utils.GetHostIp())
+	_, err = stmt.Exec(readCountAcc, writeCountAcc, readBytesAcc, writeBytesAcc, readTimeAcc, writeTimeAcc, ioTimeAcc, weightedIoAcc, tmpIp, tmpName, name)
 	if err != nil {
-		log.Errorf("add disk info detail failed: %s from %s", err.Error(), tmpName)
+		log.Errorf("update monitor_disk_history self_disk io total failed: %s from %s", err.Error(), tmpName)
+		return
+	}
+	stmt, err := db.Prepare("insert into monitor_disk_indicator (name,host_ip,host_name,device,mount,serial_num,disk_total,disk_used,disk_free,inode_total,inode_used,inode_free,read_count,write_count,read_bytes,write_bytes,read_time,write_time,io_time,weight_io,date_time) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+	if err != nil {
+		log.Errorf("prepare add disk partition detail failed: %s from %s, %s", err.Error(), tmpName, tmpIp)
+		return
+	}
+	_, err = stmt.Exec(name, tmpIp, tmpName, "/dev/"+name, mount, getDiskSN(name), stat.Total, stat.Used, stat.Free, stat.InodesTotal, stat.InodesUsed, stat.InodesFree, diskIoInfo.ReadCount-readCountAcc, diskIoInfo.WriteCount-writeCountAcc, diskIoInfo.ReadBytes-readBytesAcc, diskIoInfo.WriteBytes-writeBytesAcc, diskIoInfo.ReadTime-readTimeAcc, diskIoInfo.WriteTime-writeTimeAcc, diskIoInfo.IoTime-ioTimeAcc, diskIoInfo.WeightedIO-weightedIoAcc, dateTime-dateTime%300)
+	if err != nil {
+		log.Errorf("add disk partition detail failed: %s from %s, %s", err.Error(), tmpName, tmpIp)
 		return
 	}
 }
@@ -71,6 +92,7 @@ func collectDiskDetail(name string, diskIoInfo disk.IOCountersStat) {
 func CollectJob() {
 	collectJob()
 }
+
 func collectJob() {
 	Init()
 	defer log.Flush()
@@ -180,53 +202,12 @@ func collectJob() {
 	}
 	//获取磁盘信息
 	var readCount, writeCount, readBytes, writeBytes, readTime, writeTime, ioTime, weightedIo uint64 = 0, 0, 0, 0, 0, 0, 0, 0
-	diskIoInfo, _ := disk.IOCounters()
-	for k, v := range diskIoInfo {
-		go collectDiskDetail(k, v)
-		readCount = readCount + v.ReadCount
-		writeCount = writeCount + v.WriteCount
-		readBytes = readBytes + v.ReadBytes
-		writeBytes = writeBytes + v.WriteBytes
-		readTime = readTime + v.ReadTime
-		writeTime = writeTime + v.WriteTime
-		ioTime = ioTime + v.IoTime
-		weightedIo = weightedIo + v.WeightedIO
-	}
-	//查询上次累加值
-	var diskReadCount, diskWriteCount, diskReadBytes, diskWriteBytes, diskReadTime, diskWriteTime, diskIoTime, diskWeightIo uint64
-	err = db.QueryRow("select net_bytes_rev,net_bytes_send,net_package_rev,net_package_send,net_drop_rev,net_drop_send,net_error_rev,net_error_send from net_record where host_ip = ? and `name` = ?", tmpIp, constants.DISK_IO_TOTAL).Scan(&diskReadCount, &diskWriteCount, &diskReadBytes, &diskWriteBytes, &diskReadTime, &diskWriteTime, &diskIoTime, &diskWeightIo)
-	if err != nil {
-		if strings.Contains(err.Error(), constants.NO_ROWS_IN_DB) {
-			stmt, err := db.Prepare("insert into net_record (net_bytes_rev,net_bytes_send,net_package_rev,net_package_send,net_drop_rev,net_drop_send,net_error_rev,net_error_send,host_ip,name) values (?,?,?,?,?,?,?,?,?,?)")
-			if err != nil {
-				log.Errorf("prepare insert net_record of disk failed: %s from %s", err.Error(), tmpIp)
-				return
-			} else {
-				_, err := stmt.Exec(readCount, writeCount, readBytes, writeBytes, readTime, writeTime, ioTime, weightedIo, tmpIp, constants.DISK_IO_TOTAL)
-				if err != nil {
-					log.Errorf("formal insert net_record of disk failed: %s from %s", err.Error(), tmpName)
-				}
-			}
-		} else {
-			log.Errorf("get disk io total last record failed: %s from %s", err.Error(), tmpName)
-			return
-		}
-	}
-	//更新累加值
-	stmt, err = db.Prepare("update net_record set net_bytes_rev = ?, net_bytes_send = ?, net_package_rev = ?, net_package_send = ?, net_drop_rev = ?, net_drop_send = ?, net_error_rev = ?, net_error_send = ? where host_ip = ? and `name` = ?")
-	if err != nil {
-		log.Errorf("prepare update net record disk io total failed: %s from %s", err.Error(), tmpName)
-		return
-	}
-	_, err = stmt.Exec(readCount, writeCount, readBytes, writeBytes, readTime, writeTime, ioTime, weightedIo, tmpIp, constants.DISK_IO_TOTAL)
-	if err != nil {
-		log.Errorf("update net record disk io total failed: %s from %s", err.Error(), tmpName)
-		return
-	}
-	//磁盘空间
-	var diskTotal, diskUsed, diskFree, inodeTotal, inodeUsed, inodeFree uint64
+	var diskTotal, diskUsed, diskFree, inodeTotal, inodeUsed, inodeFree uint64 = 0, 0, 0, 0, 0, 0
 	partitionInfo, _ := disk.Partitions(false)
+	diskIoInfo, _ := disk.IOCounters()
 	for _, v := range partitionInfo {
+		name := v.Device[5 : len(v.Device)-1]
+		dio := diskIoInfo[name]
 		space, _ := disk.Usage(v.Mountpoint)
 		diskTotal = diskTotal + space.Total
 		diskUsed = diskUsed + space.Used
@@ -234,7 +215,46 @@ func collectJob() {
 		inodeTotal = inodeTotal + space.InodesTotal
 		inodeUsed = inodeUsed + space.InodesUsed
 		inodeFree = inodeFree + space.InodesFree
-		go collectDiskSpace(v, space)
+		readCount = readCount + dio.ReadCount
+		writeCount = writeCount + dio.WriteCount
+		readBytes = readBytes + dio.ReadBytes
+		writeBytes = writeBytes + dio.WriteBytes
+		readTime = readTime + dio.ReadTime
+		writeTime = writeTime + dio.WriteTime
+		ioTime = ioTime + dio.IoTime
+		weightedIo = weightedIo + dio.WeightedIO
+		go collectDiskIndicator(name, v.Mountpoint, dio, space)
+	}
+	//查询上次累加值
+	var readCountAcc, writeCountAcc, readBytesAcc, writeBytesAcc, readTimeAcc, writeTimeAcc, ioTimeAcc, weightedIoAcc uint64 = 0, 0, 0, 0, 0, 0, 0, 0
+	err = db.QueryRow("select net_bytes_rev,net_bytes_send,net_package_rev,net_package_send,net_drop_rev,net_drop_send,net_error_rev,net_error_send from net_record where host_ip = ? and `name` = ?", tmpIp, constants.DISK_IO_TOTAL).Scan(&readCountAcc, &writeCountAcc, &readBytesAcc, &writeBytesAcc, &readTimeAcc, &writeTimeAcc, &ioTimeAcc, &weightedIoAcc)
+	if err != nil {
+		if strings.Contains(err.Error(), constants.NO_ROWS_IN_DB) {
+			stmt, err := db.Prepare("insert into net_record (name,host_ip,net_bytes_rev,net_bytes_send,net_package_rev,net_package_send,net_drop_rev,net_drop_send,net_error_rev,net_error_send) values (?,?,?,?,?,?,?,?,?,?)")
+			if err != nil {
+				log.Errorf("prepare insert net_record of disk failed: %s from %s", err.Error(), tmpName)
+				return
+			} else {
+				_, err := stmt.Exec(constants.DISK_IO_TOTAL, tmpIp, readCount, writeCount, readBytes, writeBytes, readTime, writeTime, ioTime, weightedIo)
+				if err != nil {
+					log.Errorf("formal net_record of disk failed: %s from %s", err.Error(), tmpName)
+				}
+			}
+		} else {
+			log.Errorf("get disk total last record failed: %s from %s", err.Error(), tmpName)
+			return
+		}
+	}
+	//更新累加值
+	stmt, err = db.Prepare("update net_record set net_bytes_rev = ?, net_bytes_send = ?, net_package_rev = ?, net_package_send = ?, net_drop_rev = ?, net_drop_send = ?, net_error_rev = ?, net_error_send = ? where host_ip = ? and `name` = ?")
+	if err != nil {
+		log.Errorf("prepare update net monitor_disk_history disk io total failed: %s from %s", err.Error(), tmpName)
+		return
+	}
+	_, err = stmt.Exec(readCountAcc, writeCountAcc, readBytesAcc, writeBytesAcc, readTimeAcc, writeTimeAcc, ioTimeAcc, weightedIoAcc, tmpIp, tmpName, constants.DISK_IO_TOTAL)
+	if err != nil {
+		log.Errorf("update monitor_disk_history disk io total failed: %s from %s", err.Error(), tmpName)
+		return
 	}
 
 	//获取网络信息
@@ -288,7 +308,7 @@ func collectJob() {
 		loadInfo.Load1, loadInfo.Load5, loadInfo.Load15, loadMisInfo.ProcsTotal, loadMisInfo.ProcsRunning,
 		swapMemInfo.Total, swapMemInfo.Used, swapMemInfo.Free, swapMemInfo.UsedPercent, virtualMemInfo.Total, virtualMemInfo.Used, virtualMemInfo.Free, virtualMemInfo.UsedPercent,
 		(netInfo[0].BytesRecv-netBytesRev)/300, (netInfo[0].BytesSent-netBytesSend)/300, (netInfo[0].PacketsRecv-netPackageRev)/300, (netInfo[0].PacketsSent-netPackageSend)/300, (netInfo[0].Dropin-netDropRev)/300, (netInfo[0].Dropout-netDropSend)/300, (netInfo[0].Errin-netErrorRev)/300, (netInfo[0].Errout-netErrorSend)/300,
-		(readCount-diskReadCount)/300, (writeCount-diskWriteCount)/300, (readBytes-diskReadBytes)/300, (writeBytes-diskWriteBytes)/300, (readTime-diskReadTime)/300, (writeTime-diskWriteTime)/300, (ioTime-diskIoTime)/300,
+		(readCount-readCountAcc)/300, (writeCount-writeCountAcc)/300, (readBytes-readBytesAcc)/300, (writeBytes-writeBytesAcc)/300, (readTime-readTimeAcc)/300, (writeTime-writeTimeAcc)/300, (ioTime-ioTimeAcc)/300,
 		diskTotal, diskUsed, diskFree, inodeTotal, inodeUsed, inodeFree, stp-stp%300)
 	if err != nil {
 		log.Errorf("formal add host indicator failed: %s from %s", err.Error(), tmpName)
