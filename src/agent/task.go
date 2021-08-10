@@ -129,16 +129,27 @@ func collectJob() {
 	}
 	//cpu是累加值，计算本次cpu值
 	var cpuUser, cpuSys, cpuIdle, cpuIOwait, cpuIrq, cpuSofirq float64 = 0, 0, 0, 0, 0, 0
-	err = db.QueryRow("select net_bytes_rev,net_bytes_send,net_package_rev,net_package_send,net_drop_rev,net_drop_send from net_record where `name` = ?", constants.CPU).Scan(&cpuUser, &cpuSys, &cpuIdle, &cpuIOwait, &cpuIrq, &cpuSofirq)
-	if err != nil {
+	err = db.QueryRow("select net_bytes_rev,net_bytes_send,net_package_rev,net_package_send,net_drop_rev,net_drop_send from net_record where host_ip = ? and `name` = ?", tmpIp, constants.CPU).Scan(&cpuUser, &cpuSys, &cpuIdle, &cpuIOwait, &cpuIrq, &cpuSofirq)
+	if (strings.Contains(err.Error(), constants.NO_ROWS_IN_DB) {
+		stmt, err := db.Prepare("insert into net_record (net_bytes_rev,net_bytes_send,net_package_rev,net_package_send,net_drop_rev,net_drop_send,host_ip,name) values (?,?,?,?,?,?,?,?)")
+		if err != nil {
+			log.Errorf("prepare insert net_record of cpu failed: %s from %s", err.Error(), tmpIp)
+			return
+		} else {
+			_, err := stmt.Exec(cpuInfos[0].User, cpuInfos[0].System, cpuInfos[0].Idle, cpuInfos[0].Iowait, cpuInfos[0].Irq, cpuInfos[0].Softirq, tmpIp, constants.CPU)
+			if err != nil {
+				log.Errorf("formal insert net_record of cpu failed: %s from %s", err.Error(), tmpName)
+			}
+		}
+	} else {
 		log.Errorf("get last cpu info failed: %s from %s", err.Error(), tmpName)
 		return
 	}
-	stmt, err := db.Prepare("update net_record set net_bytes_rev = ?, net_bytes_send = ?, net_package_rev = ?, net_package_send = ?, net_drop_rev = ?, net_drop_send = ? where `name` = ?")
+	stmt, err := db.Prepare("update net_record set net_bytes_rev = ?, net_bytes_send = ?, net_package_rev = ?, net_package_send = ?, net_drop_rev = ?, net_drop_send = ? where host_ip = ? and `name` = ?")
 	if err != nil {
 		log.Errorf("prepare update current cpu info failed: %s from %s", err.Error(), tmpName)
 	} else {
-		_, err := stmt.Exec(cpuInfos[0].User, cpuInfos[0].System, cpuInfos[0].Idle, cpuInfos[0].Iowait, cpuInfos[0].Irq, cpuInfos[0].Softirq, constants.CPU)
+		_, err := stmt.Exec(cpuInfos[0].User, cpuInfos[0].System, cpuInfos[0].Idle, cpuInfos[0].Iowait, cpuInfos[0].Irq, cpuInfos[0].Softirq, tmpIp, constants.CPU)
 		if err != nil {
 			log.Errorf("formal update cpu info failed: %s from %s", err.Error(), tmpName)
 		}
@@ -181,18 +192,29 @@ func collectJob() {
 	}
 	//查询上次累加值
 	var diskReadCount, diskWriteCount, diskReadBytes, diskWriteBytes, diskReadTime, diskWriteTime, diskIoTime, diskWeightIo uint64
-	err = db.QueryRow("select net_bytes_rev,net_bytes_send,net_package_rev,net_package_send,net_drop_rev,net_drop_send,net_error_rev,net_error_send from net_record where `name` = ?", constants.DISK_IO_TOTAL).Scan(&diskReadCount, &diskWriteCount, &diskReadBytes, &diskWriteBytes, &diskReadTime, &diskWriteTime, &diskIoTime, &diskWeightIo)
-	if err != nil {
+	err = db.QueryRow("select net_bytes_rev,net_bytes_send,net_package_rev,net_package_send,net_drop_rev,net_drop_send,net_error_rev,net_error_send from net_record where host_ip = ? and `name` = ?", tmpIp, constants.DISK_IO_TOTAL).Scan(&diskReadCount, &diskWriteCount, &diskReadBytes, &diskWriteBytes, &diskReadTime, &diskWriteTime, &diskIoTime, &diskWeightIo)
+	if (strings.Contains(err.Error(), constants.NO_ROWS_IN_DB) {
+		stmt, err := db.Prepare("insert into net_record (net_bytes_rev,net_bytes_send,net_package_rev,net_package_send,net_drop_rev,net_drop_send,net_error_rev,net_error_send,host_ip,name) values (?,?,?,?,?,?,?,?,?,?)")
+		if err != nil {
+			log.Errorf("prepare insert net_record of disk failed: %s from %s", err.Error(), tmpIp)
+			return
+		} else {
+			_, err := stmt.Exec(readCount, writeCount, readBytes, writeBytes, readTime, writeTime, ioTime, weightedIo, tmpIp, constants.DISK_IO_TOTAL)
+			if err != nil {
+				log.Errorf("formal insert net_record of disk failed: %s from %s", err.Error(), tmpName)
+			}
+		}
+	} else {
 		log.Errorf("get disk io total last record failed: %s from %s", err.Error(), tmpName)
 		return
 	}
 	//更新累加值
-	stmt, err = db.Prepare("update net_record set net_bytes_rev = ?, net_bytes_send = ?, net_package_rev = ?, net_package_send = ?, net_drop_rev = ?, net_drop_send = ?, net_error_rev = ?, net_error_send = ? where `name` = ?")
+	stmt, err = db.Prepare("update net_record set net_bytes_rev = ?, net_bytes_send = ?, net_package_rev = ?, net_package_send = ?, net_drop_rev = ?, net_drop_send = ?, net_error_rev = ?, net_error_send = ? where host_ip = ? and `name` = ?")
 	if err != nil {
 		log.Errorf("prepare update net record disk io total failed: %s from %s", err.Error(), tmpName)
 		return
 	}
-	_, err = stmt.Exec(readCount, writeCount, readBytes, writeBytes, readTime, writeTime, ioTime, weightedIo, constants.DISK_IO_TOTAL)
+	_, err = stmt.Exec(readCount, writeCount, readBytes, writeBytes, readTime, writeTime, ioTime, weightedIo, tmpIp, constants.DISK_IO_TOTAL)
 	if err != nil {
 		log.Errorf("update net record disk io total failed: %s from %s", err.Error(), tmpName)
 		return
@@ -219,18 +241,29 @@ func collectJob() {
 	}
 	//先查询上次累加值
 	var netBytesRev, netBytesSend, netPackageRev, netPackageSend, netDropRev, netDropSend, netErrorRev, netErrorSend uint64 = 0, 0, 0, 0, 0, 0, 0, 0
-	err = db.QueryRow("select net_bytes_rev,net_bytes_send,net_package_rev,net_package_send,net_drop_rev,net_drop_send,net_error_rev,net_error_send from net_record where `name` = ?", constants.NET).Scan(&netBytesRev, &netBytesSend, &netPackageRev, &netPackageSend, &netDropRev, &netDropSend, &netErrorRev, &netErrorSend)
-	if err != nil {
+	err = db.QueryRow("select net_bytes_rev,net_bytes_send,net_package_rev,net_package_send,net_drop_rev,net_drop_send,net_error_rev,net_error_send from net_record where host_ip = ? and `name` = ?", tmpIp, constants.NET).Scan(&netBytesRev, &netBytesSend, &netPackageRev, &netPackageSend, &netDropRev, &netDropSend, &netErrorRev, &netErrorSend)
+	if (strings.Contains(err.Error(), constants.NO_ROWS_IN_DB) {
+		stmt, err := db.Prepare("insert into net_record (net_bytes_rev,net_bytes_send,net_package_rev,net_package_send,net_drop_rev,net_drop_send,net_error_rev,net_error_send,host_ip,name) values (?,?,?,?,?,?,?,?,?,?)")
+		if err != nil {
+			log.Errorf("prepare insert net_record of net failed: %s from %s", err.Error(), tmpIp)
+			return
+		} else {
+			_, err := stmt.Exec(netInfo[0].BytesRecv, netInfo[0].BytesSent, netInfo[0].PacketsRecv, netInfo[0].PacketsSent, netInfo[0].Dropin, netInfo[0].Dropout, netInfo[0].Errin, netInfo[0].Errout, tmpIp, constants.NET)
+			if err != nil {
+				log.Errorf("formal insert net_record of net failed: %s from %s", err.Error(), tmpName)
+			}
+		}
+	} else {
 		log.Errorf("get net last record failed: %s from %s", err.Error(), tmpName)
 		return
 	}
 	//网络指标是累加值，所以需要记录每次的累加值
-	stmt, err = db.Prepare("update net_record set net_bytes_rev = ?, net_bytes_send = ?, net_package_rev = ?, net_package_send = ?, net_drop_rev = ?, net_drop_send = ?, net_error_rev = ?, net_error_send = ? where `name` = ?")
+	stmt, err = db.Prepare("update net_record set net_bytes_rev = ?, net_bytes_send = ?, net_package_rev = ?, net_package_send = ?, net_drop_rev = ?, net_drop_send = ?, net_error_rev = ?, net_error_send = ? where host_ip = ? and `name` = ?")
 	if err != nil {
 		log.Errorf("prepare add net record failed: %s from %s", err.Error(), tmpName)
 		return
 	}
-	_, err = stmt.Exec(netInfo[0].BytesRecv, netInfo[0].BytesSent, netInfo[0].PacketsRecv, netInfo[0].PacketsSent, netInfo[0].Dropin, netInfo[0].Dropout, netInfo[0].Errin, netInfo[0].Errout, constants.NET)
+	_, err = stmt.Exec(netInfo[0].BytesRecv, netInfo[0].BytesSent, netInfo[0].PacketsRecv, netInfo[0].PacketsSent, netInfo[0].Dropin, netInfo[0].Dropout, netInfo[0].Errin, netInfo[0].Errout, tmpIp, constants.NET)
 	if err != nil {
 		log.Errorf("add net record failed: %s from %s", err.Error(), tmpName)
 		return
