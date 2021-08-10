@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"config"
+	"constants"
 	log "github.com/cihub/seelog"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/shirou/gopsutil/cpu"
@@ -56,7 +58,7 @@ func collectDiskDetail(name string, diskIoInfo disk.IOCountersStat) {
 		log.Errorf("get db connection failed: %s from %s", err.Error(), tmpName)
 		return
 	}
-	stmt, err := db.Prepare("insert into monitor_disk_info (`name`,host_name,serial_num,read_count,write_count,read_bytes,write_bytes,read_time,write_time,io_time, weight_io, date_time,host_ip) values (?,?,?,?,?,?,?,?,?,?,?,?,?)")
+	stmt, err := db.Prepare("insert into monitor_disk_info (`name`,host_name, serial_num,read_count,write_count,read_bytes,write_bytes,read_time,write_time,io_time, weight_io, date_time,host_ip) values (?,?,?,?,?,?,?,?,?,?,?,?,?)")
 	if err != nil {
 		log.Errorf("prepare add disk info detail failed: %s from %s", err.Error(), tmpName)
 		return
