@@ -1,8 +1,6 @@
 package agent
 
 import (
-	"config"
-	"constants"
 	log "github.com/cihub/seelog"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/shirou/gopsutil/cpu"
@@ -132,7 +130,7 @@ func collectJob() {
 	//cpu是累加值，计算本次cpu值
 	var cpuUser, cpuSys, cpuIdle, cpuIOwait, cpuIrq, cpuSofirq float64 = 0, 0, 0, 0, 0, 0
 	err = db.QueryRow("select net_bytes_rev,net_bytes_send,net_package_rev,net_package_send,net_drop_rev,net_drop_send from net_record where host_ip = ? and `name` = ?", tmpIp, constants.CPU).Scan(&cpuUser, &cpuSys, &cpuIdle, &cpuIOwait, &cpuIrq, &cpuSofirq)
-	if strings.Contains(err.Error(), constants.NO_ROWS_IN_DB) {
+	if err != nil && strings.Contains(err.Error(), constants.NO_ROWS_IN_DB) {
 		stmt, err := db.Prepare("insert into net_record (net_bytes_rev,net_bytes_send,net_package_rev,net_package_send,net_drop_rev,net_drop_send,host_ip,name) values (?,?,?,?,?,?,?,?)")
 		if err != nil {
 			log.Errorf("prepare insert net_record of cpu failed: %s from %s", err.Error(), tmpIp)
@@ -144,7 +142,7 @@ func collectJob() {
 			}
 		}
 	} else {
-		log.Errorf("get last cpu info failed: %s from %s", err.Error(), tmpName)
+		//log.Errorf("get last cpu info failed: %s from %s", err.Error(), tmpName)
 		return
 	}
 	stmt, err := db.Prepare("update net_record set net_bytes_rev = ?, net_bytes_send = ?, net_package_rev = ?, net_package_send = ?, net_drop_rev = ?, net_drop_send = ? where host_ip = ? and `name` = ?")
@@ -195,7 +193,7 @@ func collectJob() {
 	//查询上次累加值
 	var diskReadCount, diskWriteCount, diskReadBytes, diskWriteBytes, diskReadTime, diskWriteTime, diskIoTime, diskWeightIo uint64
 	err = db.QueryRow("select net_bytes_rev,net_bytes_send,net_package_rev,net_package_send,net_drop_rev,net_drop_send,net_error_rev,net_error_send from net_record where host_ip = ? and `name` = ?", tmpIp, constants.DISK_IO_TOTAL).Scan(&diskReadCount, &diskWriteCount, &diskReadBytes, &diskWriteBytes, &diskReadTime, &diskWriteTime, &diskIoTime, &diskWeightIo)
-	if strings.Contains(err.Error(), constants.NO_ROWS_IN_DB) {
+	if err != nil && strings.Contains(err.Error(), constants.NO_ROWS_IN_DB) {
 		stmt, err := db.Prepare("insert into net_record (net_bytes_rev,net_bytes_send,net_package_rev,net_package_send,net_drop_rev,net_drop_send,net_error_rev,net_error_send,host_ip,name) values (?,?,?,?,?,?,?,?,?,?)")
 		if err != nil {
 			log.Errorf("prepare insert net_record of disk failed: %s from %s", err.Error(), tmpIp)
@@ -244,7 +242,7 @@ func collectJob() {
 	//先查询上次累加值
 	var netBytesRev, netBytesSend, netPackageRev, netPackageSend, netDropRev, netDropSend, netErrorRev, netErrorSend uint64 = 0, 0, 0, 0, 0, 0, 0, 0
 	err = db.QueryRow("select net_bytes_rev,net_bytes_send,net_package_rev,net_package_send,net_drop_rev,net_drop_send,net_error_rev,net_error_send from net_record where host_ip = ? and `name` = ?", tmpIp, constants.NET).Scan(&netBytesRev, &netBytesSend, &netPackageRev, &netPackageSend, &netDropRev, &netDropSend, &netErrorRev, &netErrorSend)
-	if strings.Contains(err.Error(), constants.NO_ROWS_IN_DB) {
+	if err != nil && strings.Contains(err.Error(), constants.NO_ROWS_IN_DB) {
 		stmt, err := db.Prepare("insert into net_record (net_bytes_rev,net_bytes_send,net_package_rev,net_package_send,net_drop_rev,net_drop_send,net_error_rev,net_error_send,host_ip,name) values (?,?,?,?,?,?,?,?,?,?)")
 		if err != nil {
 			log.Errorf("prepare insert net_record of net failed: %s from %s", err.Error(), tmpIp)
@@ -271,12 +269,14 @@ func collectJob() {
 		return
 	}
 	//记录本次机器指标信息
+
 	stp := time.Now().Unix()
 	stmt, err = db.Prepare("insert into monitor_host_indicator (host_name, host_ip, procs, cpu_user, cpu_sys, cpu_idle, cpu_iowait, cpu_irq, cpu_sofirg, load1, load5, load15, load_process_total, load_process_run, mem_swap_total, mem_swap_used, mem_swap_free, mem_swap_percent, mem_vtotal, mem_vused, mem_vfree, mem_vpercent, net_traffic_rev, net_traffic_sent, net_package_rev, net_package_sent, net_drop_rev, net_drop_sent, net_error_rev, net_error_sent, disk_read_count, disk_write_count, disk_read_bytes, disk_write_bytes, disk_read_time, disk_write_time, io_time, disk_total, disk_used, disk_free, inode_total, inode_used, inode_free, date_time) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
 	if err != nil {
 		log.Errorf("prepare add all indicator failed: %s from %s", err.Error(), tmpName)
 		return
 	}
+
 	_, err = stmt.Exec(hostName, tmpIp, hostInfos.Procs,
 		cpuInfos[0].User-cpuUser, cpuInfos[0].System-cpuSys, cpuInfos[0].Idle-cpuIdle, cpuInfos[0].Iowait-cpuIOwait, cpuInfos[0].Irq-cpuIrq, cpuInfos[0].Softirq-cpuSofirq,
 		loadInfo.Load1, loadInfo.Load5, loadInfo.Load15, loadMisInfo.ProcsTotal, loadMisInfo.ProcsRunning,

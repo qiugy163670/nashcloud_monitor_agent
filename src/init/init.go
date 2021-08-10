@@ -17,6 +17,7 @@ import (
 
 func startCrustLog() {
 	messages := make(chan string, 1)
+
 	container := ci.GetContainer()
 	//crustApiPath := getCrustLogsPath(container["crust-api"])
 	//ipfs := getCrustLogsPath(container["ipfs"])

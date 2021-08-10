@@ -195,7 +195,7 @@ func MainLogSync(log string, time string) int {
 			logPush(mainLog)
 			tempCount = count
 			count = -1
-			if timeCount < 5 {
+			if timeCount < 1 {
 				timeCount++
 			} else {
 				agent.CollectJob()
