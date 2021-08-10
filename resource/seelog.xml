@@ -37,20 +37,20 @@ minlevel 设置日志最低级别; maxlevel 设置日志的最高级别
 
         <!-- <filter>用于单独处理某级别日志
         过滤日志，把级别是error的通过邮件smtp方式发送出去(一般会发给相应的运维人员) -->
-        <filter levels="error">
-            <file path="./log/error.log"/>
-            <smtp senderaddress="noreply-notification-service@none.org"
-                  sendername="Automatic notification service"
-                  hostname="mail.none.org"
-                  hostport="587"
-                  username="nns"
-                  password="123">
-                <recipient address="john-smith@none.com"/>
-                <recipient address="hans-meier@none.com"/>
-            </smtp>
-            <!-- 按tcp4网络协议发送日志 -->
-            <conn net="tcp4" addr="server.address:5514" tls="true" insecureskipverify="true" />
-        </filter>
+<!--        <filter levels="error">-->
+<!--            <file path="./log/error.log"/>-->
+<!--            <smtp senderaddress="noreply-notification-service@none.org"-->
+<!--                  sendername="Automatic notification service"-->
+<!--                  hostname="mail.none.org"-->
+<!--                  hostport="587"-->
+<!--                  username="nns"-->
+<!--                  password="123">-->
+<!--                <recipient address="john-smith@none.com"/>-->
+<!--                <recipient address="hans-meier@none.com"/>-->
+<!--            </smtp>-->
+<!--            &lt;!&ndash; 按tcp4网络协议发送日志 &ndash;&gt;-->
+<!--            <conn net="tcp4" addr="server.address:5514" tls="true" insecureskipverify="true" />-->
+<!--        </filter>-->
 
     </outputs>
 
