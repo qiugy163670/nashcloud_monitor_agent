@@ -72,7 +72,7 @@ func collectDiskIndicator(name, mount string, diskIoInfo disk.IOCountersStat, st
 		log.Errorf("prepare update net monitor_disk_history self_disk io total failed: %s from %s", err.Error(), tmpName)
 		return
 	}
-	_, err = stmt.Exec(readCountAcc, writeCountAcc, readBytesAcc, writeBytesAcc, readTimeAcc, writeTimeAcc, ioTimeAcc, weightedIoAcc, tmpIp, tmpName, name)
+	_, err = stmt.Exec(readCountAcc, writeCountAcc, readBytesAcc, writeBytesAcc, readTimeAcc, writeTimeAcc, ioTimeAcc, weightedIoAcc, tmpIp, name)
 	if err != nil {
 		log.Errorf("update monitor_disk_history self_disk io total failed: %s from %s", err.Error(), tmpName)
 		return
@@ -251,7 +251,7 @@ func collectJob() {
 		log.Errorf("prepare update net monitor_disk_history disk io total failed: %s from %s", err.Error(), tmpName)
 		return
 	}
-	_, err = stmt.Exec(readCountAcc, writeCountAcc, readBytesAcc, writeBytesAcc, readTimeAcc, writeTimeAcc, ioTimeAcc, weightedIoAcc, tmpIp, tmpName, constants.DISK_IO_TOTAL)
+	_, err = stmt.Exec(readCountAcc, writeCountAcc, readBytesAcc, writeBytesAcc, readTimeAcc, writeTimeAcc, ioTimeAcc, weightedIoAcc, tmpIp, constants.DISK_IO_TOTAL)
 	if err != nil {
 		log.Errorf("update monitor_disk_history disk io total failed: %s from %s", err.Error(), tmpName)
 		return
