@@ -67,7 +67,7 @@ func collectDiskIndicator(name, mount string, diskIoInfo disk.IOCountersStat, st
 		}
 	}
 	//更新累加值
-	stmt, err = db.Prepare("update net_record set net_bytes_rev = ?, net_bytes_send = ?, net_package_rev = ?, net_package_send = ?, net_drop_rev = ?, net_drop_send = ?, net_error_rev = ?, net_error_send = ? where host_ip = ? and `name` = ?")
+	stmt, err := db.Prepare("update net_record set net_bytes_rev = ?, net_bytes_send = ?, net_package_rev = ?, net_package_send = ?, net_drop_rev = ?, net_drop_send = ?, net_error_rev = ?, net_error_send = ? where host_ip = ? and `name` = ?")
 	if err != nil {
 		log.Errorf("prepare update net monitor_disk_history self_disk io total failed: %s from %s", err.Error(), tmpName)
 		return
@@ -77,7 +77,7 @@ func collectDiskIndicator(name, mount string, diskIoInfo disk.IOCountersStat, st
 		log.Errorf("update monitor_disk_history self_disk io total failed: %s from %s", err.Error(), tmpName)
 		return
 	}
-	stmt, err := db.Prepare("insert into monitor_disk_indicator (name,host_ip,host_name,device,mount,serial_num,disk_total,disk_used,disk_free,inode_total,inode_used,inode_free,read_count,write_count,read_bytes,write_bytes,read_time,write_time,io_time,weight_io,date_time) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+	stmt, err = db.Prepare("insert into monitor_disk_indicator (name,host_ip,host_name,device,mount,serial_num,disk_total,disk_used,disk_free,inode_total,inode_used,inode_free,read_count,write_count,read_bytes,write_bytes,read_time,write_time,io_time,weight_io,date_time) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
 	if err != nil {
 		log.Errorf("prepare add disk partition detail failed: %s from %s, %s", err.Error(), tmpName, tmpIp)
 		return
