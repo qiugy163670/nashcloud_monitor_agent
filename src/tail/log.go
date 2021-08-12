@@ -198,7 +198,7 @@ func MainLogSync(log string, time string) int {
 			if timeCount < 4 {
 				timeCount++
 			} else {
-				agent.CollectJob()
+				//agent.CollectJob()
 				timeCount = 0
 			}
 		}
