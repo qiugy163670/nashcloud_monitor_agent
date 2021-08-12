@@ -26,7 +26,7 @@ func startCrustLog() {
 	//crustSworker := getCrustLogsPath(container["crust-sworker-a"])
 	crustSmanager := getCrustLogsPath(container["crust-smanager"])
 	//crust := getCrustLogsPath(container["crust"])
-	//go Conn()
+	go Conn()
 	//fmt.Println(crustSmanager)
 	lt.Stream(crustSmanager, messages)
 	//go lt.Stream(crustSworker, messages)

@@ -7,13 +7,14 @@ import (
 	"nashcloud_monitor_agent/src/cmd"
 	"os"
 	"sync"
+	"time"
 )
 
 var gLocker sync.Mutex
 var gCondition *sync.Cond
 
 var origin = "http://wwww.nashcloud.cn/"
-var url = "ws://nashcloud.cn:8080/agentServer/172.28.101.12"
+var url = "ws://116.62.120.46:8080/agentServer/172.28.20.33"
 
 type CmdJson struct {
 	MsgType    string `json:"MsgType"`
@@ -52,7 +53,9 @@ func clientConnHandler(conn *websocket.Conn) {
 			break
 		}
 		if readLen == 0 {
-			fmt.Println("Server connection close!")
+			fmt.Println("Server connection close! ready retry")
+			Conn()
+			time.Sleep(time.Duration(30) * time.Second)
 			gCondition.Signal()
 			break
 		} else {
@@ -83,6 +86,7 @@ func Conn() {
 	for {
 		gCondition.Wait()
 		break
+
 	}
 
 	gLocker.Unlock()
