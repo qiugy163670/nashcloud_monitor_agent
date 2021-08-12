@@ -210,10 +210,10 @@ func collectJob() {
 	partitionInfo, _ := disk.Partitions(false)
 	diskIoInfo, _ := disk.IOCounters()
 	for _, v := range partitionInfo {
-		name := v.Device[5 : len(v.Device)-1]
-		dio := diskIoInfo[name]
-		space, _ := disk.Usage(v.Mountpoint)
-		if space != nil {
+		if strings.Contains(v.Device, "/dev/") {
+			name := v.Device[5 : len(v.Device)-1]
+			dio := diskIoInfo[name]
+			space, _ := disk.Usage(v.Mountpoint)
 			diskTotal = diskTotal + space.Total
 			diskUsed = diskUsed + space.Used
 			diskFree = diskFree + space.Free
