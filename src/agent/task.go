@@ -81,9 +81,9 @@ func collectDiskIndicator(name, mount string, diskIoInfo disk.IOCountersStat, st
 		log.Errorf("update monitor_disk_history self_disk io total failed: %s from %s", err.Error(), tmpName)
 		return
 	}
-	stmt, err = db.Prepare("insert into monitor_disk_indicator (`name`,host_ip,host_name,device,mount,serial_num,disk_total,disk_used,disk_free,inode_total,inode_used,inode_free,read_count,write_count,read_bytes,write_bytes,read_time,write_time,io_time,weight_io,date_time) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+	stmt, err = db.Prepare("insert into monitor_disk_indicator (name,host_ip,host_name,device,mount,serial_num,disk_total,disk_used,disk_free,inode_total,inode_used,inode_free,read_count,write_count,read_bytes,write_bytes,read_time,write_time,io_time,weight_io,date_time) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
 	if err != nil {
-		log.Errorf("prepare add disk partition detail failed: %s from %s, %s", err.Error(), tmpIp)
+		log.Errorf("prepare add disk partition detail failed: %s from %s, %s", err.Error(), tmpName, tmpIp)
 		return
 	}
 	_, err = stmt.Exec(name, tmpIp, tmpName, "/dev/"+name, mount, getDiskSN(name), stat.Total, stat.Used, stat.Free, stat.InodesTotal, stat.InodesUsed, stat.InodesFree, diskIoInfo.ReadCount-readCountAcc, diskIoInfo.WriteCount-writeCountAcc, diskIoInfo.ReadBytes-readBytesAcc, diskIoInfo.WriteBytes-writeBytesAcc, diskIoInfo.ReadTime-readTimeAcc, diskIoInfo.WriteTime-writeTimeAcc, diskIoInfo.IoTime-ioTimeAcc, diskIoInfo.WeightedIO-weightedIoAcc, dateTime-dateTime%300)
@@ -255,7 +255,7 @@ func collectJob() {
 		log.Errorf("prepare update net monitor_disk_history disk io total failed: %s from %s", err.Error(), tmpName)
 		return
 	}
-	_, err = stmt.Exec(readCountAcc, writeCountAcc, readBytesAcc, writeBytesAcc, readTimeAcc, writeTimeAcc, ioTimeAcc, weightedIoAcc, tmpIp, tmpName)
+	_, err = stmt.Exec(readCountAcc, writeCountAcc, readBytesAcc, writeBytesAcc, readTimeAcc, writeTimeAcc, ioTimeAcc, weightedIoAcc, tmpIp, tmpName, constants.DISK_IO_TOTAL)
 	if err != nil {
 		log.Errorf("update monitor_disk_history disk io total failed: %s from %s", err.Error(), tmpName)
 		return
