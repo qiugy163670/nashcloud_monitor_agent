@@ -28,13 +28,17 @@ func getDiskSN(path string) string {
 	pac := ca.ProcessAgentCheck{
 		BinPath: "/bin/sh",
 	}
-	cmd := "hdparm  -I /dev/" + path + " |grep 'Serial Number'"
-	//fmt.Println(cmd)
-	err, list := pac.ExecCmd(cmd)
-	if err != nil {
-		fmt.Println(err)
+	disks := getDisks()
+	if disks.Len() > 2 {
+		cmd := "hdparm  -I /dev/" + path + " |grep 'Serial Number'"
+		//fmt.Println(cmd)
+		err, list := pac.ExecCmd(cmd)
+		if err != nil {
+			fmt.Println(err)
+		}
+		return strings.ReplaceAll(list.Front().Value.(string), "Serial Number:", "")
 	}
-	return strings.ReplaceAll(list.Front().Value.(string), "Serial Number:", "")
+	return "is raid"
 }
 
 func collectDiskIndicator(name, mount string, diskIoInfo disk.IOCountersStat, stat *disk.UsageStat) {
@@ -67,19 +71,19 @@ func collectDiskIndicator(name, mount string, diskIoInfo disk.IOCountersStat, st
 		}
 	}
 	//更新累加值
-	stmt, err = db.Prepare("update net_record set net_bytes_rev = ?, net_bytes_send = ?, net_package_rev = ?, net_package_send = ?, net_drop_rev = ?, net_drop_send = ?, net_error_rev = ?, net_error_send = ? where host_ip = ? and `name` = ?")
+	stmt, err := db.Prepare("update net_record set net_bytes_rev = ?, net_bytes_send = ?, net_package_rev = ?, net_package_send = ?, net_drop_rev = ?, net_drop_send = ?, net_error_rev = ?, net_error_send = ? where host_ip = ? and `name` = ?")
 	if err != nil {
 		log.Errorf("prepare update net monitor_disk_history self_disk io total failed: %s from %s", err.Error(), tmpName)
 		return
 	}
-	_, err = stmt.Exec(readCountAcc, writeCountAcc, readBytesAcc, writeBytesAcc, readTimeAcc, writeTimeAcc, ioTimeAcc, weightedIoAcc, tmpIp, tmpName, name)
+	_, err = stmt.Exec(readCountAcc, writeCountAcc, readBytesAcc, writeBytesAcc, readTimeAcc, writeTimeAcc, ioTimeAcc, weightedIoAcc, tmpIp, name)
 	if err != nil {
 		log.Errorf("update monitor_disk_history self_disk io total failed: %s from %s", err.Error(), tmpName)
 		return
 	}
-	stmt, err := db.Prepare("insert into monitor_disk_indicator (name,host_ip,host_name,device,mount,serial_num,disk_total,disk_used,disk_free,inode_total,inode_used,inode_free,read_count,write_count,read_bytes,write_bytes,read_time,write_time,io_time,weight_io,date_time) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+	stmt, err = db.Prepare("insert into monitor_disk_indicator (`name`,host_ip,host_name,device,mount,serial_num,disk_total,disk_used,disk_free,inode_total,inode_used,inode_free,read_count,write_count,read_bytes,write_bytes,read_time,write_time,io_time,weight_io,date_time) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
 	if err != nil {
-		log.Errorf("prepare add disk partition detail failed: %s from %s, %s", err.Error(), tmpName, tmpIp)
+		log.Errorf("prepare add disk partition detail failed: %s from %s, %s", err.Error(), tmpIp)
 		return
 	}
 	_, err = stmt.Exec(name, tmpIp, tmpName, "/dev/"+name, mount, getDiskSN(name), stat.Total, stat.Used, stat.Free, stat.InodesTotal, stat.InodesUsed, stat.InodesFree, diskIoInfo.ReadCount-readCountAcc, diskIoInfo.WriteCount-writeCountAcc, diskIoInfo.ReadBytes-readBytesAcc, diskIoInfo.WriteBytes-writeBytesAcc, diskIoInfo.ReadTime-readTimeAcc, diskIoInfo.WriteTime-writeTimeAcc, diskIoInfo.IoTime-ioTimeAcc, diskIoInfo.WeightedIO-weightedIoAcc, dateTime-dateTime%300)
@@ -251,7 +255,7 @@ func collectJob() {
 		log.Errorf("prepare update net monitor_disk_history disk io total failed: %s from %s", err.Error(), tmpName)
 		return
 	}
-	_, err = stmt.Exec(readCountAcc, writeCountAcc, readBytesAcc, writeBytesAcc, readTimeAcc, writeTimeAcc, ioTimeAcc, weightedIoAcc, tmpIp, tmpName, constants.DISK_IO_TOTAL)
+	_, err = stmt.Exec(readCountAcc, writeCountAcc, readBytesAcc, writeBytesAcc, readTimeAcc, writeTimeAcc, ioTimeAcc, weightedIoAcc, tmpIp, tmpName)
 	if err != nil {
 		log.Errorf("update monitor_disk_history disk io total failed: %s from %s", err.Error(), tmpName)
 		return

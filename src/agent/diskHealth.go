@@ -51,15 +51,15 @@ func getDisks() list.List {
 	return list
 }
 
-func getDiskSN(path string) string {
-	pac := ca.ProcessAgentCheck{
-		BinPath: "/bin/sh",
-	}
-	cmd := "hdparm  -I /dev/" + path + " |grep 'Serial Number'"
-	//fmt.Println(cmd)
-	err, list := pac.ExecCmd(cmd)
-	if err != nil {
-		fmt.Println(err)
-	}
-	return strings.ReplaceAll(list.Front().Value.(string), "Serial Number:", "")
-}
+//func getDiskSN(path string) string {
+//	pac := ca.ProcessAgentCheck{
+//		BinPath: "/bin/sh",
+//	}
+//	cmd := "hdparm  -I /dev/" + path + " |grep 'Serial Number'"
+//	//fmt.Println(cmd)
+//	err, list := pac.ExecCmd(cmd)
+//	if err != nil {
+//		fmt.Println(err)
+//	}
+//	return strings.ReplaceAll(list.Front().Value.(string), "Serial Number:", "")
+//}

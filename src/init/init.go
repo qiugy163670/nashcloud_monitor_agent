@@ -1,7 +1,8 @@
 package init
 
 import (
-	//"fmt"
+	"fmt"
+
 	log "github.com/cihub/seelog"
 	"nashcloud_monitor_agent/src/agent"
 	ca "nashcloud_monitor_agent/src/cmd"
@@ -10,6 +11,7 @@ import (
 	"nashcloud_monitor_agent/src/local"
 	lt "nashcloud_monitor_agent/src/tail"
 	"nashcloud_monitor_agent/src/utils"
+	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"runtime"
@@ -17,17 +19,14 @@ import (
 
 func startCrustLog() {
 	messages := make(chan string, 1)
-
+	agent.CollectJob()
 	container := ci.GetContainer()
 	//crustApiPath := getCrustLogsPath(container["crust-api"])
 	//ipfs := getCrustLogsPath(container["ipfs"])
 	//crustSworker := getCrustLogsPath(container["crust-sworker-a"])
 	crustSmanager := getCrustLogsPath(container["crust-smanager"])
 	//crust := getCrustLogsPath(container["crust"])
-
-	//go func() {
-	//	http.ListenAndServe("0.0.0.0:9999", nil)
-	//}()
+	//go Conn()
 	//fmt.Println(crustSmanager)
 	lt.Stream(crustSmanager, messages)
 	//go lt.Stream(crustSworker, messages)
@@ -56,8 +55,18 @@ func init() {
 	log.Info("current crust node ipfs status : ", c.Node.Ipfs)
 	log.Info("current crust node mode : ", c.Node.Smanager)
 	pushCrustNodeInfo(c, backupJson.Address, ip, hostName)
+	//go func() {
+	//	http.ListenAndServe("0.0.0.0:9999", nil)
+	//}()
+	http.HandleFunc("/", doExec)
 	startCrustLog()
 }
+
+func doExec(writer http.ResponseWriter, request *http.Request) {
+	///api/v0/diag/sys
+	fmt.Println("sss")
+}
+
 func pushCrustNodeInfo(c utils.Conf, address string, ip string, hostName string) {
 	db, err := config.GetDBConnection()
 	if err != nil {
@@ -88,15 +97,19 @@ func pushCrustNodeInfo(c utils.Conf, address string, ip string, hostName string)
 
 }
 func getCrustLogsPath(id string) string {
+
 	logBasePath := "/var/lib/docker/containers/"
 	pac := ca.ProcessAgentCheck{
 		BinPath: "/bin/sh",
 	}
+
 	cmdStr := "sudo ls -l " + logBasePath + "| grep " + id + " | awk '{print $NF}'"
 	err, res := pac.ExecCmd(cmdStr)
 	if err != nil {
 		log.Info("error: ", err)
 	}
+
 	midPath := res.Front().Value.(string)
 	return logBasePath + midPath + "/" + midPath + "-json.log"
+
 }
