@@ -213,21 +213,23 @@ func collectJob() {
 		name := v.Device[5 : len(v.Device)-1]
 		dio := diskIoInfo[name]
 		space, _ := disk.Usage(v.Mountpoint)
-		diskTotal = diskTotal + space.Total
-		diskUsed = diskUsed + space.Used
-		diskFree = diskFree + space.Free
-		inodeTotal = inodeTotal + space.InodesTotal
-		inodeUsed = inodeUsed + space.InodesUsed
-		inodeFree = inodeFree + space.InodesFree
-		readCount = readCount + dio.ReadCount
-		writeCount = writeCount + dio.WriteCount
-		readBytes = readBytes + dio.ReadBytes
-		writeBytes = writeBytes + dio.WriteBytes
-		readTime = readTime + dio.ReadTime
-		writeTime = writeTime + dio.WriteTime
-		ioTime = ioTime + dio.IoTime
-		weightedIo = weightedIo + dio.WeightedIO
-		go collectDiskIndicator(name, v.Mountpoint, dio, space)
+		if space != nil {
+			diskTotal = diskTotal + space.Total
+			diskUsed = diskUsed + space.Used
+			diskFree = diskFree + space.Free
+			inodeTotal = inodeTotal + space.InodesTotal
+			inodeUsed = inodeUsed + space.InodesUsed
+			inodeFree = inodeFree + space.InodesFree
+			readCount = readCount + dio.ReadCount
+			writeCount = writeCount + dio.WriteCount
+			readBytes = readBytes + dio.ReadBytes
+			writeBytes = writeBytes + dio.WriteBytes
+			readTime = readTime + dio.ReadTime
+			writeTime = writeTime + dio.WriteTime
+			ioTime = ioTime + dio.IoTime
+			weightedIo = weightedIo + dio.WeightedIO
+			go collectDiskIndicator(name, v.Mountpoint, dio, space)
+		}
 	}
 	//查询上次累加值
 	var readCountAcc, writeCountAcc, readBytesAcc, writeBytesAcc, readTimeAcc, writeTimeAcc, ioTimeAcc, weightedIoAcc uint64 = 0, 0, 0, 0, 0, 0, 0, 0
