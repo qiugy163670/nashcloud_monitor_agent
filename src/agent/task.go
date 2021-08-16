@@ -56,6 +56,7 @@ func collectDiskIndicator(name, mount string, diskIoInfo disk.IOCountersStat, st
 	if err != nil {
 		if strings.Contains(err.Error(), constants.NO_ROWS_IN_DB) {
 			stmt, err := db.Prepare("insert into net_record (name,host_ip,net_bytes_rev,net_bytes_send,net_package_rev,net_package_send,net_drop_rev,net_drop_send,net_error_rev,net_error_send) values (?,?,?,?,?,?,?,?,?,?)")
+			defer stmt.Close()
 			if err != nil {
 				log.Errorf("prepare insert net_record of self_disk failed: %s from %s", err.Error(), tmpName)
 				return
@@ -72,6 +73,7 @@ func collectDiskIndicator(name, mount string, diskIoInfo disk.IOCountersStat, st
 	}
 	//更新累加值
 	stmt, err := db.Prepare("update net_record set net_bytes_rev = ?, net_bytes_send = ?, net_package_rev = ?, net_package_send = ?, net_drop_rev = ?, net_drop_send = ?, net_error_rev = ?, net_error_send = ? where host_ip = ? and `name` = ?")
+	defer stmt.Close()
 	if err != nil {
 		log.Errorf("prepare update net monitor_disk_history self_disk io total failed: %s from %s", err.Error(), tmpName)
 		return
@@ -82,6 +84,7 @@ func collectDiskIndicator(name, mount string, diskIoInfo disk.IOCountersStat, st
 		return
 	}
 	stmt, err = db.Prepare("insert into monitor_disk_indicator (name,host_ip,host_name,device,mount,serial_num,disk_total,disk_used,disk_free,inode_total,inode_used,inode_free,read_count,write_count,read_bytes,write_bytes,read_time,write_time,io_time,weight_io,date_time) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+	defer stmt.Close()
 	if err != nil {
 		log.Errorf("prepare add disk partition detail failed: %s from %s, %s", err.Error(), tmpName, tmpIp)
 		return
@@ -129,6 +132,7 @@ func collectJob() {
 	if err != nil {
 		if strings.Contains(err.Error(), constants.NO_ROWS_IN_DB) {
 			stmt, err := db.Prepare("insert into net_record (net_bytes_rev,net_bytes_send,net_package_rev,net_package_send,net_drop_rev,net_drop_send,host_ip,name) values (?,?,?,?,?,?,?,?)")
+			defer stmt.Close()
 			if err != nil {
 				log.Errorf("prepare insert net_record of cpu failed: %s from %s", err.Error(), tmpIp)
 				return
@@ -144,6 +148,7 @@ func collectJob() {
 		}
 	}
 	stmt, err := db.Prepare("update net_record set net_bytes_rev = ?, net_bytes_send = ?, net_package_rev = ?, net_package_send = ?, net_drop_rev = ?, net_drop_send = ? where host_ip = ? and `name` = ?")
+	defer stmt.Close()
 	if err != nil {
 		log.Errorf("prepare update current cpu info failed: %s from %s", err.Error(), tmpName)
 	} else {
@@ -207,6 +212,7 @@ func collectJob() {
 	if err != nil {
 		if strings.Contains(err.Error(), constants.NO_ROWS_IN_DB) {
 			stmt, err := db.Prepare("insert into net_record (name,host_ip,net_bytes_rev,net_bytes_send,net_package_rev,net_package_send,net_drop_rev,net_drop_send,net_error_rev,net_error_send) values (?,?,?,?,?,?,?,?,?,?)")
+			defer stmt.Close()
 			if err != nil {
 				log.Errorf("prepare insert net_record of disk failed: %s from %s", err.Error(), tmpName)
 				return
@@ -223,6 +229,7 @@ func collectJob() {
 	}
 	//更新累加值
 	stmt, err = db.Prepare("update net_record set net_bytes_rev = ?, net_bytes_send = ?, net_package_rev = ?, net_package_send = ?, net_drop_rev = ?, net_drop_send = ?, net_error_rev = ?, net_error_send = ? where host_ip = ? and `name` = ?")
+	defer stmt.Close()
 	if err != nil {
 		log.Errorf("prepare update net monitor_disk_history disk io total failed: %s from %s", err.Error(), tmpName)
 		return
@@ -245,6 +252,7 @@ func collectJob() {
 	if err != nil {
 		if strings.Contains(err.Error(), constants.NO_ROWS_IN_DB) {
 			stmt, err := db.Prepare("insert into net_record (net_bytes_rev,net_bytes_send,net_package_rev,net_package_send,net_drop_rev,net_drop_send,net_error_rev,net_error_send,host_ip,name) values (?,?,?,?,?,?,?,?,?,?)")
+			defer stmt.Close()
 			if err != nil {
 				log.Errorf("prepare insert net_record of net failed: %s from %s", err.Error(), tmpIp)
 				return
@@ -261,6 +269,7 @@ func collectJob() {
 	}
 	//网络指标是累加值，所以需要记录每次的累加值
 	stmt, err = db.Prepare("update net_record set net_bytes_rev = ?, net_bytes_send = ?, net_package_rev = ?, net_package_send = ?, net_drop_rev = ?, net_drop_send = ?, net_error_rev = ?, net_error_send = ? where host_ip = ? and `name` = ?")
+	defer stmt.Close()
 	if err != nil {
 		log.Errorf("prepare add net record failed: %s from %s", err.Error(), tmpName)
 		return
@@ -274,6 +283,7 @@ func collectJob() {
 
 	stp := time.Now().Unix()
 	stmt, err = db.Prepare("insert into monitor_host_indicator (host_name, host_ip, procs, cpu_user, cpu_sys, cpu_idle, cpu_iowait, cpu_irq, cpu_sofirg, load1, load5, load15, load_process_total, load_process_run, mem_swap_total, mem_swap_used, mem_swap_free, mem_swap_percent, mem_vtotal, mem_vused, mem_vfree, mem_vpercent, net_traffic_rev, net_traffic_sent, net_package_rev, net_package_sent, net_drop_rev, net_drop_sent, net_error_rev, net_error_sent, disk_read_count, disk_write_count, disk_read_bytes, disk_write_bytes, disk_read_time, disk_write_time, io_time, disk_total, disk_used, disk_free, inode_total, inode_used, inode_free, date_time) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+	defer stmt.Close()
 	if err != nil {
 		log.Errorf("prepare add all indicator failed: %s from %s", err.Error(), tmpName)
 		return
