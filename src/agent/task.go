@@ -115,37 +115,7 @@ func collectJob() {
 		log.Errorf("get db connection failed: %s from %s", err.Error(), tmpName)
 		return
 	}
-	var hostName, hostIp, os, platform, platformVersion, kernelVersion string
-	err = db.QueryRow("select host_name, host_ip, os, platform, platform_version, kernel_version from nash_servers where `host_ip` = ?", utils.GetHostIp()).Scan(&hostName, &hostIp, &os, &platform, &platformVersion, &kernelVersion)
-	if err != nil {
-		if strings.Contains(err.Error(), constants.NO_ROWS_IN_DB) {
-			stmt, err := db.Prepare("insert into nash_servers (host_name, host_ip, os, platform, platform_version, kernel_version, company) values (?,?,?,?,?,?,?)")
-			if err != nil {
-				log.Errorf("prepare insert host info failed: %s from %s", err.Error(), tmpName)
-				return
-			} else {
-				_, err := stmt.Exec(hostInfos.Hostname, hostIp, hostInfos.OS, hostInfos.Platform, hostInfos.PlatformVersion, hostInfos.KernelVersion, constants.NASH_CLOUD)
-				if err != nil {
-					log.Errorf("formal insert host info failed: %s from %s", err.Error(), tmpName)
-				}
-			}
-		} else {
-			log.Errorf("query host info failed: %s from %s", err.Error(), tmpName)
-			return
-		}
-	}
 	tmpIp := utils.GetHostIp()
-	if hostIp != tmpIp || os != hostInfos.OS || platform != hostInfos.Platform || platformVersion != hostInfos.PlatformVersion || kernelVersion != hostInfos.KernelVersion {
-		stmt, err := db.Prepare("update nash_servers set host_ip = ?, os = ?, platform = ?, platform_version = ?, kernel_version = ? where `host_name` = ?")
-		if err != nil {
-			log.Errorf("prepare update host info failed: %s from %s", err.Error(), tmpName)
-		} else {
-			_, err := stmt.Exec(tmpIp, hostInfos.OS, hostInfos.Platform, hostInfos.PlatformVersion, hostInfos.KernelVersion, hostInfos.Hostname)
-			if err != nil {
-				log.Errorf("formal update host info failed: %s from %s", err.Error(), tmpName)
-			}
-		}
-	}
 
 	//获取cpu信息
 	cpuInfos, err := cpu.Times(false)
