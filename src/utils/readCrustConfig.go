@@ -26,6 +26,7 @@ type Identity struct {
 type Chain struct {
 	Name string `yaml:"name"`
 }
+
 type Conf struct {
 	Node     *Node     `yaml:"node"`
 	Identity *Identity `yaml:"identity"`

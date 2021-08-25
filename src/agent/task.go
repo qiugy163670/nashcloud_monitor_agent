@@ -1,7 +1,9 @@
 package agent
 
 import (
+	"crypto/rand"
 	"fmt"
+	"github.com/bitly/go-simplejson"
 	log "github.com/cihub/seelog"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/shirou/gopsutil/cpu"
@@ -10,12 +12,16 @@ import (
 	"github.com/shirou/gopsutil/load"
 	"github.com/shirou/gopsutil/mem"
 	"github.com/shirou/gopsutil/net"
-
+	"math/big"
 	ca "nashcloud_monitor_agent/src/cmd"
 	"nashcloud_monitor_agent/src/config"
 	"nashcloud_monitor_agent/src/constants"
+	ci "nashcloud_monitor_agent/src/crust_info"
+	er "nashcloud_monitor_agent/src/error"
+	"nashcloud_monitor_agent/src/local"
 	"nashcloud_monitor_agent/src/utils"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -25,11 +31,18 @@ func Init() {
 }
 
 func getDiskSN(path string) string {
+	// 捕获异常
+	defer func() {
+		if r := recover(); r != nil {
+
+		}
+
+	}()
 	pac := ca.ProcessAgentCheck{
 		BinPath: "/bin/sh",
 	}
-	disks := getDisks()
-	if disks.Len() > 2 {
+	disks := GetDisks()
+	if disks.Len() > 2 && strings.Contains(path, "sd") && !strings.Contains(path, "loop") {
 		cmd := "hdparm  -I /dev/" + path + " |grep 'Serial Number'"
 		//fmt.Println(cmd)
 		err, list := pac.ExecCmd(cmd)
@@ -91,10 +104,14 @@ func collectDiskIndicator(name, mount string, diskIoInfo disk.IOCountersStat, st
 		log.Errorf("add disk partition detail failed: %s from %s, %s", err.Error(), tmpName, tmpIp)
 		return
 	}
+	defer stmt.Close()
+
 }
 
-func CollectJob() {
+func CollectJob(backupJson utils.BackupJson, c utils.Conf) {
+	MainLogSync(backupJson, c)
 	collectJob()
+
 }
 
 func collectJob() {
@@ -115,37 +132,7 @@ func collectJob() {
 		log.Errorf("get db connection failed: %s from %s", err.Error(), tmpName)
 		return
 	}
-	var hostName, hostIp, os, platform, platformVersion, kernelVersion string
-	err = db.QueryRow("select host_name, host_ip, os, platform, platform_version, kernel_version from nash_servers where `host_ip` = ?", utils.GetHostIp()).Scan(&hostName, &hostIp, &os, &platform, &platformVersion, &kernelVersion)
-	if err != nil {
-		if strings.Contains(err.Error(), constants.NO_ROWS_IN_DB) {
-			stmt, err := db.Prepare("insert into nash_servers (host_name, host_ip, os, platform, platform_version, kernel_version, company) values (?,?,?,?,?,?,?)")
-			if err != nil {
-				log.Errorf("prepare insert host info failed: %s from %s", err.Error(), tmpName)
-				return
-			} else {
-				_, err := stmt.Exec(hostInfos.Hostname, hostIp, hostInfos.OS, hostInfos.Platform, hostInfos.PlatformVersion, hostInfos.KernelVersion, constants.NASH_CLOUD)
-				if err != nil {
-					log.Errorf("formal insert host info failed: %s from %s", err.Error(), tmpName)
-				}
-			}
-		} else {
-			log.Errorf("query host info failed: %s from %s", err.Error(), tmpName)
-			return
-		}
-	}
 	tmpIp := utils.GetHostIp()
-	if hostIp != tmpIp || os != hostInfos.OS || platform != hostInfos.Platform || platformVersion != hostInfos.PlatformVersion || kernelVersion != hostInfos.KernelVersion {
-		stmt, err := db.Prepare("update nash_servers set host_ip = ?, os = ?, platform = ?, platform_version = ?, kernel_version = ? where `host_name` = ?")
-		if err != nil {
-			log.Errorf("prepare update host info failed: %s from %s", err.Error(), tmpName)
-		} else {
-			_, err := stmt.Exec(tmpIp, hostInfos.OS, hostInfos.Platform, hostInfos.PlatformVersion, hostInfos.KernelVersion, hostInfos.Hostname)
-			if err != nil {
-				log.Errorf("formal update host info failed: %s from %s", err.Error(), tmpName)
-			}
-		}
-	}
 
 	//获取cpu信息
 	cpuInfos, err := cpu.Times(false)
@@ -210,8 +197,8 @@ func collectJob() {
 	partitionInfo, _ := disk.Partitions(false)
 	diskIoInfo, _ := disk.IOCounters()
 	for _, v := range partitionInfo {
-		if strings.Contains(v.Device, "/dev/") {
-			name := v.Device[5 : len(v.Device)-1]
+		if strings.Contains(v.Device, "/dev/sd") {
+			name := strings.ReplaceAll(v.Device, "/dev/", "") //v.Device[5 : len(v.Device)-1]
 			dio := diskIoInfo[name]
 			space, _ := disk.Usage(v.Mountpoint)
 			diskTotal = diskTotal + space.Total
@@ -257,7 +244,7 @@ func collectJob() {
 		log.Errorf("prepare update net monitor_disk_history disk io total failed: %s from %s", err.Error(), tmpName)
 		return
 	}
-	_, err = stmt.Exec(readCountAcc, writeCountAcc, readBytesAcc, writeBytesAcc, readTimeAcc, writeTimeAcc, ioTimeAcc, weightedIoAcc, tmpIp, tmpName, constants.DISK_IO_TOTAL)
+	_, err = stmt.Exec(readCountAcc, writeCountAcc, readBytesAcc, writeBytesAcc, readTimeAcc, writeTimeAcc, ioTimeAcc, weightedIoAcc, tmpIp, constants.DISK_IO_TOTAL)
 	if err != nil {
 		log.Errorf("update monitor_disk_history disk io total failed: %s from %s", err.Error(), tmpName)
 		return
@@ -319,17 +306,134 @@ func collectJob() {
 	if err != nil {
 		log.Errorf("formal add host indicator failed: %s from %s", err.Error(), tmpName)
 	}
-}
+	defer stmt.Close()
 
-func ExecuteTask() {
+}
+func RandInt64(min, max int64) int64 {
+	maxBigInt := big.NewInt(max)
+	i, _ := rand.Int(rand.Reader, maxBigInt)
+	if i.Int64() < min {
+		RandInt64(min, max)
+	}
+	return i.Int64()
+}
+func ExecuteTask(backupJson utils.BackupJson, c utils.Conf) {
 	var ch chan int
+	//CollectJob(backupJson,c)
 	//定时任务
-	ticker := time.NewTicker(time.Minute * 5)
+	//取4：30 -5：30 内的随机时间
+	cTime := RandInt64(270, 330)
+	log.Info("ticker is ", cTime)
+	ticker := time.NewTicker(time.Second * time.Duration(cTime))
 	go func() {
 		for range ticker.C {
 			collectJob()
+			MainLogSync(backupJson, c)
 		}
 		ch <- 1
 	}()
 	<-ch
+}
+
+type MainLog struct {
+	time     string
+	newBlock string
+	localIp  string
+	error    string
+	hostName string
+	ipfs     string
+	smanager string
+	addr     string
+}
+
+var mainLog MainLog
+var count = -1
+
+func crustTask(mainLog MainLog) {
+
+	workLoad := GetWorkLoad()
+	db, err := config.GetDBConnection()
+	if err != nil {
+		log.Errorf("get db connection failed: %s from %s", err.Error())
+		return
+	}
+	if strings.Contains(workLoad, "files") {
+		res, err := simplejson.NewJson([]byte(workLoad))
+
+		if err != nil {
+			fmt.Printf("%v\n", err)
+			return
+		}
+		files := res.Get("files")
+		srd := res.Get("srd")
+		fmt.Println(files)
+		stmt, err := db.Prepare("INSERT INTO `monitor_crust_indicator` ( `time`, `newBlock`, `localIp`, `error`, `hostName`, `ipfs`, `smanager`, `addr`, `filesLost`, `filesPeeding`, `filesVaild`, `srdComplete`, `srdRemainingTask`, `DiskAVA4Srd`) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);")
+		if err != nil {
+			log.Errorf("prepare insert net_record of disk failed: %s from %s", err.Error())
+			return
+		} else {
+			//dateTime-dateTime%300
+			dateTime := time.Now().Unix()
+			_, err := stmt.Exec(dateTime-dateTime%300, "", local.GetLocal().Ip, mainLog.error, local.GetLocal().HostName, mainLog.ipfs, mainLog.smanager, mainLog.addr, files.Get("lost").Get("num").MustInt(), files.Get("pending").Get("num").MustInt(), files.Get("valid").Get("num").MustInt(), srd.Get("srd_complete").MustInt(), srd.Get("srd_remaining_task").MustInt(), srd.Get("disk_available_for_srd").MustInt())
+			if err != nil {
+				log.Errorf("formal net_record of disk failed: %s from %s", err.Error())
+			}
+		}
+		defer stmt.Close()
+	} else {
+		stmt, err := db.Prepare("INSERT INTO `monitor_crust_indicator` ( `time`, `newBlock`, `localIp`, `error`, `hostName`, `ipfs`, `smanager`, `addr`, `filesLost`, `filesPeeding`, `filesVaild`, `srdComplete`, `srdRemainingTask`, `DiskAVA4Srd`) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);")
+		if err != nil {
+			log.Errorf("prepare insert net_record of disk failed: %s from %s", err.Error())
+			return
+		} else {
+			//dateTime-dateTime%300
+			dateTime := time.Now().Unix()
+			_, err := stmt.Exec(dateTime-dateTime%300, "", local.GetLocal().Ip, workLoad, local.GetLocal().HostName, mainLog.ipfs, mainLog.smanager, mainLog.addr, "nil", "nil", "nil", "nil", "nil", "nil")
+			if err != nil {
+				log.Errorf("formal net_record of disk failed: %s from %s", err.Error())
+			}
+		}
+		defer stmt.Close()
+	}
+
+}
+
+func GetWorkLoad() string {
+	pac := ca.ProcessAgentCheck{
+		BinPath: "/bin/sh",
+	}
+	err, s := pac.ExecCmd4String("crust tools workload")
+	if err != nil {
+
+	}
+
+	index := strings.Index(s, "{")
+	if index != -1 {
+		s = s[index:]
+	}
+	//fmt.Println(s)
+	return s
+
+}
+
+func MainLogSync(backupJson utils.BackupJson, c utils.Conf) {
+	defer func() {
+		if r := recover(); r != nil {
+			//fmt.Println("recover...:", r)
+			er.ErrorHandler(r.(string))
+		}
+	}()
+
+	mainLog.hostName = local.GetLocal().HostName
+	mainLog.localIp = local.GetLocal().Ip
+	mainLog.ipfs = c.Node.Ipfs
+	mainLog.smanager = c.Node.Smanager
+	mainLog.addr = backupJson.Address
+
+	health := ci.CheckHealth()
+	healthCount, _ := strconv.Atoi(health)
+	mainLog.error = strconv.Itoa(5 - healthCount)
+
+	crustTask(mainLog)
+
 }

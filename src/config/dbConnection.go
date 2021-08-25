@@ -32,9 +32,9 @@ func InitDBConnection() (*sql.DB, error) {
 	if err != nil {
 		log.Error("get db connection failed: %s at %d", err.Error(), time.Now().Unix())
 	}
-	db.SetConnMaxLifetime(time.Minute * 3)
-	db.SetMaxOpenConns(10)
-	db.SetMaxIdleConns(10)
+	db.SetConnMaxLifetime(time.Second * 30)
+	db.SetMaxOpenConns(3)
+	db.SetMaxIdleConns(3)
 	return db, nil
 }
 

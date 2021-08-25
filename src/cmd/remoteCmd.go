@@ -5,6 +5,9 @@ import (
 	log "github.com/cihub/seelog"
 )
 
+// RemoteExec
+// 执行来自socket下发的远程命令
+///*
 func RemoteExec(cmdStr string) string {
 	list, err := remoteExec(cmdStr)
 	if err != nil {

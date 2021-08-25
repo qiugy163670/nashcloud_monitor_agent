@@ -11,7 +11,7 @@ import (
 )
 
 func GetAndPushDiskInfo() {
-	disks := getDisks()
+	disks := GetDisks()
 
 	db, err := config.GetDBConnection()
 	if err != nil {
@@ -40,7 +40,7 @@ func GetAndPushDiskInfo() {
 	}
 }
 
-func getDisks() list.List {
+func GetDisks() list.List {
 	pac := ca.ProcessAgentCheck{
 		BinPath: "/bin/sh",
 	}
