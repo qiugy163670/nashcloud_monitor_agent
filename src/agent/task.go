@@ -387,7 +387,7 @@ func collectJob() {
 }
 func RandInt64(min, max int64) int64 {
 	if min > max {
-		panic("the min is greater than max!")
+		//panic("the min is greater than max!")
 	}
 
 	if min < 0 {
