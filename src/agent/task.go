@@ -359,29 +359,8 @@ func collectJob() {
 
 	//b, _ := json.Marshal(param)
 
-	postRequest("http://116.62.222.211:9091/hostIndicator", param)
+	postRequest("http://116.62.222.211:9090/hostIndicator", param)
 
-	//
-	//stmt, err = db.Prepare("insert into monitor_host_indicator (host_name, host_ip, procs, cpu_user, cpu_sys, cpu_idle, cpu_iowait, cpu_irq, cpu_sofirg, load1, load5, load15, load_process_total, load_process_run, mem_swap_total, mem_swap_used, mem_swap_free, mem_swap_percent, mem_vtotal, mem_vused, mem_vfree, mem_vpercent, net_traffic_rev, net_traffic_sent, net_package_rev, net_package_sent, net_drop_rev, net_drop_sent, net_error_rev, net_error_sent, disk_read_count, disk_write_count, disk_read_bytes, disk_write_bytes, disk_read_time, disk_write_time, io_time, disk_total, disk_used, disk_free, inode_total, inode_used, inode_free, date_time) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
-	//defer stmt.Close()
-	//if err != nil {
-	//	log.Errorf("prepare add all indicator failed: %s from %s", err.Error(), tmpName)
-	//	return
-	//}
-	//
-	//
-	//_, err = stmt.Exec(tmpName, tmpIp, hostInfos.Procs,
-	//	cpuInfos[0].User-cpuUser, cpuInfos[0].System-cpuSys, cpuInfos[0].Idle-cpuIdle, cpuInfos[0].Iowait-cpuIOwait, cpuInfos[0].Irq-cpuIrq, cpuInfos[0].Softirq-cpuSofirq,
-	//	loadInfo.Load1, loadInfo.Load5, loadInfo.Load15, loadMisInfo.ProcsTotal, loadMisInfo.ProcsRunning,
-	//	swapMemInfo.Total, swapMemInfo.Used, swapMemInfo.Free, swapMemInfo.UsedPercent, virtualMemInfo.Total, virtualMemInfo.Used, virtualMemInfo.Free, virtualMemInfo.UsedPercent,
-	//	(netInfo[0].BytesRecv-netBytesRev)/300, (netInfo[0].BytesSent-netBytesSend)/300, (netInfo[0].PacketsRecv-netPackageRev)/300, (netInfo[0].PacketsSent-netPackageSend)/300, (netInfo[0].Dropin-netDropRev)/300, (netInfo[0].Dropout-netDropSend)/300, (netInfo[0].Errin-netErrorRev)/300, (netInfo[0].Errout-netErrorSend)/300,
-	//	(readCount-readCountAcc)/300, (writeCount-writeCountAcc)/300, (readBytes-readBytesAcc)/300,
-	//	(writeBytes-writeBytesAcc)/300, (readTime-readTimeAcc)/300, (writeTime-writeTimeAcc)/300,
-	//	(ioTime-ioTimeAcc)/300,
-	//	diskTotal, diskUsed, diskFree, inodeTotal, inodeUsed, inodeFree, stp-stp%300)
-	//if err != nil {
-	//	log.Errorf("formal add host indicator failed: %s from %s", err.Error(), tmpName)
-	//}
 	defer stmt.Close()
 
 }
@@ -446,7 +425,6 @@ func crustTask(mainLog MainLog) {
 	crustStatus := getCrustStatus()
 	if strings.Contains(workLoad, "files") {
 		res, err := simplejson.NewJson([]byte(workLoad))
-
 		if err != nil {
 			fmt.Printf("%v\n", err)
 			return
@@ -478,24 +456,11 @@ func crustTask(mainLog MainLog) {
 		param["sworkerStatus"] = crustStatus.Sworker
 		param["smanagerStatus"] = crustStatus.Smanager
 		param["ipfsStatus"] = crustStatus.Ipfs
-		postRequest("http://116.62.222.211:9091/indicator", param)
+		request := postRequest("http://116.62.222.211:9090/indicator", param)
+		if strings.Contains(request, "chain-reload") {
+			cmdAction("crust reload chain")
+		}
 
-		//stmt, err := db.Prepare("INSERT INTO `monitor_crust_indicator`
-		//( `time`, `newBlock`, `localIp`, `error`, `hostName`, `ipfs`, `smanager`, `addr`,
-		//`filesLost`, `filesPeeding`, `filesVaild`, `srdComplete`, `srdRemainingTask`,
-		//`DiskAVA4Srd`,apiStatus,chainStatus,sworkerStatus,smanagerStatus,ipfsStatus) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?, ?, ?, ?, ?);")
-		//if err != nil {
-		//	log.Errorf("prepare insert net_record of disk failed: %s from %s", err.Error())
-		//	return
-		//} else {
-		//	//dateTime-dateTime%300
-		//	dateTime := time.Now().Unix()
-		//	_, err := stmt.Exec(dateTime-dateTime%300, getNewBlock(), local.GetLocal().Ip, mainLog.error, local.GetLocal().HostName, mainLog.ipfs, mainLog.smanager, mainLog.addr, files.Get("lost").Get("num").MustInt(), files.Get("pending").Get("num").MustInt(), files.Get("valid").Get("num").MustInt(), srd.Get("srd_complete").MustInt(), srd.Get("srd_remaining_task").MustInt(), srd.Get("disk_available_for_srd").MustInt(),crustStatus.Api,crustStatus.Chain,crustStatus.Sworker,crustStatus.Smanager,crustStatus.Ipfs)
-		//	if err != nil {
-		//		log.Errorf("formal net_record of disk failed: %s from %s", err.Error())
-		//	}
-		//}
-		//defer stmt.Close()
 	} else {
 
 		param := make(map[string]interface{})
@@ -505,8 +470,12 @@ func crustTask(mainLog MainLog) {
 		param["localIp"] = local.GetLocal().Ip
 		param["error"] = mainLog.error
 		param["hostName"] = local.GetLocal().HostName
-		param["ipfs"] = mainLog.ipfs
+		if strings.Contains(mainLog.ipfs, "dis") && strings.Contains(mainLog.smanager, "dis") {
+			mainLog.smanager = "owner"
+		}
 		param["smanager"] = mainLog.smanager
+
+		param["ipfs"] = mainLog.ipfs
 		param["addr"] = mainLog.addr
 		param["filesLost"] = nil        //files.Get("lost").Get("num").MustInt()
 		param["filesPeeding"] = nil     //files.Get("pending").Get("num").MustInt()
@@ -519,20 +488,8 @@ func crustTask(mainLog MainLog) {
 		param["sworkerStatus"] = crustStatus.Sworker
 		param["smanagerStatus"] = crustStatus.Smanager
 		param["ipfsStatus"] = crustStatus.Ipfs
-		postRequest("http://116.62.222.211:9091/indicator", param)
-		//stmt, err := db.Prepare("INSERT INTO `monitor_crust_indicator` ( `time`, `newBlock`, `localIp`, `error`, `hostName`, `ipfs`, `smanager`, `addr`, `filesLost`, `filesPeeding`, `filesVaild`, `srdComplete`, `srdRemainingTask`, `DiskAVA4Srd`) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);")
-		//if err != nil {
-		//	log.Errorf("prepare insert net_record of disk failed: %s from %s", err.Error())
-		//	return
-		//} else {
-		//	//dateTime-dateTime%300
-		//	dateTime := time.Now().Unix()
-		//	_, err := stmt.Exec(dateTime-dateTime%300, "", local.GetLocal().Ip, workLoad, local.GetLocal().HostName, mainLog.ipfs, mainLog.smanager, mainLog.addr, "nil", "nil", "nil", "nil", "nil", "nil")
-		//	if err != nil {
-		//		log.Errorf("formal net_record of disk failed: %s from %s", err.Error())
-		//	}
-		//}
-		//defer stmt.Close()
+		postRequest("http://116.62.222.211:9090/indicator", param)
+
 	}
 
 }
@@ -582,12 +539,25 @@ type CrustStatus struct {
 }
 
 func getCrustStatus() CrustStatus {
+	var c CrustStatus
+	//快速检查
+	quicklyCheck := "crust status |grep running |wc -l"
+	allStatus := cmdAction(quicklyCheck)
 
-	chain := "crust status chain |grep chain|awk '{print $2}'"
-	api := "crust status api |grep api|awk '{print $2}'"
-	sworker := "crust status sworker |grep sworker|awk '{print $2}'"
-	smanager := "crust status smanager |grep smanager|awk '{print $2}'"
-	ipfs := "crust status ipfs |grep ipfs|awk '{print $2}'"
+	if allStatus == "5" {
+		c.Sworker = "running"
+		c.Chain = "running"
+		c.Smanager = "running"
+		c.Ipfs = "running"
+		c.Api = "running"
+		return c
+	}
+
+	chain := "crust status  |grep chain|awk '{print $2}'"
+	api := "crust status  |grep api|awk '{print $2}'"
+	sworker := "crust status  |grep sworker|awk '{print $2}'"
+	smanager := "crust status  |grep smanager|awk '{print $2}'"
+	ipfs := "crust status  |grep ipfs|awk '{print $2}'"
 
 	chainStatus := cmdAction(chain)
 	apiStatus := cmdAction(api)
@@ -595,7 +565,7 @@ func getCrustStatus() CrustStatus {
 	smanagerStatus := cmdAction(smanager)
 	ipfsStatus := cmdAction(ipfs)
 	fmt.Println(chainStatus + "," + apiStatus + "," + sworkerStatus + "," + smanagerStatus + "," + ipfsStatus)
-	var c CrustStatus
+
 	c.Chain = chainStatus       //strings.ReplaceAll(strings.TrimSpace(chainStatus),"chain","")
 	c.Api = apiStatus           //strings.ReplaceAll(strings.TrimSpace(apiStatus),"api","")
 	c.Smanager = smanagerStatus //strings.ReplaceAll(strings.TrimSpace(smanagerStatus),"smanager","")
