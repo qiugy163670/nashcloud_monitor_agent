@@ -457,7 +457,8 @@ func crustTask(mainLog MainLog) {
 		param["smanagerStatus"] = crustStatus.Smanager
 		param["ipfsStatus"] = crustStatus.Ipfs
 		request := postRequest("http://116.62.222.211:9090/indicator", param)
-		if strings.Contains(request, "chain-reload") {
+		//过滤预览网
+		if strings.Contains(request, "chain-reload") && !strings.HasPrefix(request, "5") {
 			cmdAction("crust reload chain")
 		}
 
@@ -488,8 +489,10 @@ func crustTask(mainLog MainLog) {
 		param["sworkerStatus"] = crustStatus.Sworker
 		param["smanagerStatus"] = crustStatus.Smanager
 		param["ipfsStatus"] = crustStatus.Ipfs
-		postRequest("http://116.62.222.211:9090/indicator", param)
-
+		request := postRequest("http://116.62.222.211:9090/indicator", param)
+		if strings.Contains(request, "chain-reload") && !strings.HasPrefix(request, "5") {
+			cmdAction("crust reload chain")
+		}
 	}
 
 }
