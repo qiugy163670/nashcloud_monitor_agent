@@ -33,12 +33,9 @@ func Init() {
 }
 
 func getDiskSN(path string) string {
-	// 捕获异常
 	defer func() {
 		if r := recover(); r != nil {
-
 		}
-
 	}()
 	pac := ca.ProcessAgentCheck{
 		BinPath: "/bin/sh",
@@ -46,7 +43,6 @@ func getDiskSN(path string) string {
 	disks := GetDisks()
 	if disks.Len() > 2 && strings.Contains(path, "sd") && !strings.Contains(path, "loop") {
 		cmd := "hdparm  -I /dev/" + path + " |grep 'Serial Number'"
-		//fmt.Println(cmd)
 		err, list := pac.ExecCmd(cmd)
 		if err != nil {
 			fmt.Println(err)
@@ -62,7 +58,10 @@ func collectDiskIndicator(name, mount string, diskIoInfo disk.IOCountersStat, st
 	dateTime := time.Now().Unix()
 	db, err := config.GetDBConnection()
 	if err != nil {
-		log.Errorf("get db connection failed: %s from %s, %s", err.Error(), tmpName, tmpIp)
+		err := log.Errorf("get db connection failed: %s from %s, %s", err.Error(), tmpName, tmpIp)
+		if err != nil {
+			return
+		}
 		return
 	}
 	//查询上次累加值
@@ -71,24 +70,25 @@ func collectDiskIndicator(name, mount string, diskIoInfo disk.IOCountersStat, st
 	if err != nil {
 		if strings.Contains(err.Error(), constants.NO_ROWS_IN_DB) {
 			stmt, err := db.Prepare("insert into net_record (name,host_ip,net_bytes_rev,net_bytes_send,net_package_rev,net_package_send,net_drop_rev,net_drop_send,net_error_rev,net_error_send) values (?,?,?,?,?,?,?,?,?,?)")
-			defer stmt.Close()
 			if err != nil {
 				log.Errorf("prepare insert net_record of self_disk failed: %s from %s", err.Error(), tmpName)
 				return
 			} else {
-				_, err := stmt.Exec(name, tmpIp, diskIoInfo.ReadCount, diskIoInfo.WriteCount, diskIoInfo.ReadBytes, diskIoInfo.WriteBytes, diskIoInfo.ReadTime, diskIoInfo.WriteTime, diskIoInfo.IoTime, diskIoInfo.WeightedIO)
+				_, err = stmt.Exec(name, tmpIp, diskIoInfo.ReadCount, diskIoInfo.WriteCount, diskIoInfo.ReadBytes, diskIoInfo.WriteBytes, diskIoInfo.ReadTime, diskIoInfo.WriteTime, diskIoInfo.IoTime, diskIoInfo.WeightedIO)
 				if err != nil {
 					log.Errorf("formal net_record of self_disk failed: %s from %s", err.Error(), tmpName)
 				}
 			}
+			defer stmt.Close()
 		} else {
 			log.Errorf("get self_disk total last record failed: %s from %s", err.Error(), tmpName)
 			return
 		}
+
 	}
 	//更新累加值
 	stmt, err := db.Prepare("update net_record set net_bytes_rev = ?, net_bytes_send = ?, net_package_rev = ?, net_package_send = ?, net_drop_rev = ?, net_drop_send = ?, net_error_rev = ?, net_error_send = ? where host_ip = ? and `name` = ?")
-	defer stmt.Close()
+
 	if err != nil {
 		log.Errorf("prepare update net monitor_disk_history self_disk io total failed: %s from %s", err.Error(), tmpName)
 		return
@@ -99,7 +99,6 @@ func collectDiskIndicator(name, mount string, diskIoInfo disk.IOCountersStat, st
 		return
 	}
 	stmt, err = db.Prepare("insert into monitor_disk_indicator (name,host_ip,host_name,device,mount,serial_num,disk_total,disk_used,disk_free,inode_total,inode_used,inode_free,read_count,write_count,read_bytes,write_bytes,read_time,write_time,io_time,weight_io,date_time) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
-	defer stmt.Close()
 	if err != nil {
 		log.Errorf("prepare add disk partition detail failed: %s from %s, %s", err.Error(), tmpName, tmpIp)
 		return
@@ -116,7 +115,6 @@ func collectDiskIndicator(name, mount string, diskIoInfo disk.IOCountersStat, st
 func CollectJob(backupJson utils.BackupJson, c utils.Conf) {
 	MainLogSync(backupJson, c)
 	collectJob()
-
 }
 
 func collectJob() {
@@ -157,7 +155,6 @@ func collectJob() {
 	if err != nil {
 		if strings.Contains(err.Error(), constants.NO_ROWS_IN_DB) {
 			stmt, err := db.Prepare("insert into net_record (net_bytes_rev,net_bytes_send,net_package_rev,net_package_send,net_drop_rev,net_drop_send,host_ip,name) values (?,?,?,?,?,?,?,?)")
-			defer stmt.Close()
 			if err != nil {
 				log.Errorf("prepare insert net_record of cpu failed: %s from %s", err.Error(), tmpIp)
 				return
@@ -167,13 +164,14 @@ func collectJob() {
 					log.Errorf("formal insert net_record of cpu failed: %s from %s", err.Error(), tmpName)
 				}
 			}
+			defer stmt.Close()
 		} else {
 			log.Errorf("get last cpu info failed: %s from %s", err.Error(), tmpName)
 			return
 		}
 	}
 	stmt, err := db.Prepare("update net_record set net_bytes_rev = ?, net_bytes_send = ?, net_package_rev = ?, net_package_send = ?, net_drop_rev = ?, net_drop_send = ? where host_ip = ? and `name` = ?")
-	defer stmt.Close()
+
 	if err != nil {
 		log.Errorf("prepare update current cpu info failed: %s from %s", err.Error(), tmpName)
 	} else {
@@ -254,7 +252,7 @@ func collectJob() {
 	}
 	//更新累加值
 	stmt, err = db.Prepare("update net_record set net_bytes_rev = ?, net_bytes_send = ?, net_package_rev = ?, net_package_send = ?, net_drop_rev = ?, net_drop_send = ?, net_error_rev = ?, net_error_send = ? where host_ip = ? and `name` = ?")
-	defer stmt.Close()
+
 	if err != nil {
 		log.Errorf("prepare update net monitor_disk_history disk io total failed: %s from %s", err.Error(), tmpName)
 		return
@@ -294,7 +292,7 @@ func collectJob() {
 	}
 	//网络指标是累加值，所以需要记录每次的累加值
 	stmt, err = db.Prepare("update net_record set net_bytes_rev = ?, net_bytes_send = ?, net_package_rev = ?, net_package_send = ?, net_drop_rev = ?, net_drop_send = ?, net_error_rev = ?, net_error_send = ? where host_ip = ? and `name` = ?")
-	defer stmt.Close()
+
 	if err != nil {
 		log.Errorf("prepare add net record failed: %s from %s", err.Error(), tmpName)
 		return
@@ -355,7 +353,7 @@ func collectJob() {
 	param["inodeFree"] = inodeFree
 
 	stp := time.Now().Unix()
-	param["dateTime"] = stp
+	param["dateTime"] = stp - stp%300
 
 	//b, _ := json.Marshal(param)
 
@@ -379,18 +377,13 @@ func RandInt64(min, max int64) int64 {
 		result, _ := rand.Int(rand.Reader, big.NewInt(max-min+1))
 		return min + result.Int64()
 	}
-	//maxBigInt := big.NewInt(max)
-	//i, _ := rand.Int(rand.Reader, maxBigInt)
-	//if i.Int64() < min {
-	//	RandInt64(min, max)
-	//}
-	//return i.Int64()
+
 }
 func ExecuteTask(backupJson utils.BackupJson, c utils.Conf) {
 	var ch chan int
 	//定时任务
 	//取4：30 -5：30 内的随机时间
-	cTime := RandInt64(270, 330)
+	cTime := RandInt64(300, 330)
 	log.Info("ticker is ", cTime)
 	ticker := time.NewTicker(time.Second * time.Duration(cTime))
 
@@ -417,13 +410,15 @@ type MainLog struct {
 
 var mainLog MainLog
 var count = -1
+var lastSrdComp = 0
 
-func crustTask(mainLog MainLog) {
+func crustTask(mainLog MainLog, taskCount int) {
 
 	workLoad := GetWorkLoad()
 
-	crustStatus := getCrustStatus()
-	if strings.Contains(workLoad, "files") {
+	crustStatus := quicklyCheck(0)
+	//retry 5 times
+	if strings.Contains(workLoad, "files") || taskCount > 5 {
 		res, err := simplejson.NewJson([]byte(workLoad))
 		if err != nil {
 			fmt.Printf("%v\n", err)
@@ -434,10 +429,10 @@ func crustTask(mainLog MainLog) {
 		srd := res.Get("srd")
 
 		//fmt.Println(files)
-
+		srdComplete := srd.Get("srd_complete").MustInt()
 		param := make(map[string]interface{})
 		dateTime := time.Now().Unix()
-		param["time"] = dateTime
+		param["time"] = dateTime - dateTime%300
 		param["newBlock"] = getNewBlock()
 		param["localIp"] = local.GetLocal().Ip
 		param["error"] = mainLog.error
@@ -448,51 +443,25 @@ func crustTask(mainLog MainLog) {
 		param["filesLost"] = files.Get("lost").Get("num").MustInt()
 		param["filesPeeding"] = files.Get("pending").Get("num").MustInt()
 		param["filesVaild"] = files.Get("valid").Get("num").MustInt()
-		param["srdComplete"] = srd.Get("srd_complete").MustInt()
+		param["srdComplete"] = srdComplete
 		param["srdRemainingTask"] = srd.Get("srd_remaining_task").MustInt()
-		param["DiskAVA4Srd"] = srd.Get("disk_available_for_srd").MustInt()
+		param["DiskAVA4Srd"] = srdComplete - lastSrdComp //srd.Get("disk_available_for_srd").MustInt()
 		param["apiStatus"] = crustStatus.Api
 		param["chainStatus"] = crustStatus.Chain
 		param["sworkerStatus"] = crustStatus.Sworker
 		param["smanagerStatus"] = crustStatus.Smanager
 		param["ipfsStatus"] = crustStatus.Ipfs
 		request := postRequest("http://116.62.222.211:9090/indicator", param)
+		fmt.Println("hh:", srdComplete-lastSrdComp)
+		lastSrdComp = srdComplete
 		//过滤预览网
-		if strings.Contains(request, "chain-reload") && !strings.HasPrefix(request, "5") {
+		if strings.Contains(request, "chain-reload") && !strings.HasPrefix(mainLog.addr, "5") {
 			cmdAction("crust reload chain")
 		}
 
 	} else {
-
-		param := make(map[string]interface{})
-		dateTime := time.Now().Unix()
-		param["time"] = dateTime
-		param["newBlock"] = getNewBlock()
-		param["localIp"] = local.GetLocal().Ip
-		param["error"] = mainLog.error
-		param["hostName"] = local.GetLocal().HostName
-		if strings.Contains(mainLog.ipfs, "dis") && strings.Contains(mainLog.smanager, "dis") {
-			mainLog.smanager = "owner"
-		}
-		param["smanager"] = mainLog.smanager
-
-		param["ipfs"] = mainLog.ipfs
-		param["addr"] = mainLog.addr
-		param["filesLost"] = nil        //files.Get("lost").Get("num").MustInt()
-		param["filesPeeding"] = nil     //files.Get("pending").Get("num").MustInt()
-		param["filesVaild"] = nil       //files.Get("valid").Get("num").MustInt()
-		param["srdComplete"] = nil      //srd.Get("srd_complete").MustInt()
-		param["srdRemainingTask"] = nil //srd.Get("srd_remaining_task").MustInt()
-		param["DiskAVA4Srd"] = nil      //srd.Get("disk_available_for_srd").MustInt()
-		param["apiStatus"] = crustStatus.Api
-		param["chainStatus"] = crustStatus.Chain
-		param["sworkerStatus"] = crustStatus.Sworker
-		param["smanagerStatus"] = crustStatus.Smanager
-		param["ipfsStatus"] = crustStatus.Ipfs
-		request := postRequest("http://116.62.222.211:9090/indicator", param)
-		if strings.Contains(request, "chain-reload") && !strings.HasPrefix(request, "5") {
-			cmdAction("crust reload chain")
-		}
+		taskCount++
+		crustTask(mainLog, taskCount)
 	}
 
 }
@@ -517,7 +486,6 @@ func GetWorkLoad() string {
 	if index != -1 {
 		s = s[index:]
 	}
-	//fmt.Println(s)
 	return s
 }
 
@@ -541,21 +509,28 @@ type CrustStatus struct {
 	Ipfs     string
 }
 
-func getCrustStatus() CrustStatus {
+func quicklyCheck(retryCount int) CrustStatus {
 	var c CrustStatus
-	//快速检查
-	quicklyCheck := "crust status |grep running |wc -l"
-	allStatus := cmdAction(quicklyCheck)
-
+	cmd := "crust status |grep running |wc -l"
+	allStatus := cmdAction(cmd)
+	fmt.Println(allStatus)
 	if allStatus == "5" {
 		c.Sworker = "running"
 		c.Chain = "running"
 		c.Smanager = "running"
 		c.Ipfs = "running"
 		c.Api = "running"
+		fmt.Println(c)
 		return c
+	} else if retryCount < 3 && strings.TrimSpace(allStatus) == "" || allStatus == "0" {
+		retryCount++
+		return quicklyCheck(retryCount)
 	}
+	return getCrustStatus()
+}
 
+func getCrustStatus() CrustStatus {
+	var c CrustStatus
 	chain := "crust status  |grep chain|awk '{print $2}'"
 	api := "crust status  |grep api|awk '{print $2}'"
 	sworker := "crust status  |grep sworker|awk '{print $2}'"
@@ -577,8 +552,7 @@ func getCrustStatus() CrustStatus {
 	} else {
 		c.Sworker = "error exit!"
 	}
-	//c.Sworker = sworkerStatus//strings.ReplaceAll(strings.TrimSpace(sworkerStatus),"sworker","")
-	c.Ipfs = ipfsStatus //strings.ReplaceAll(strings.TrimSpace(ipfsStatus),"ipfs","")
+	c.Ipfs = ipfsStatus
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -612,7 +586,6 @@ func getRequest(url string) string {
 		"Authorization": "NDM1MjU1ZTRiYjgwZTRiOTg4ZTY5N2I2ZTU4MDk5ZTg4M2JkZTU4OGIwMzUzMDMw",
 	}).Get(url)
 	if err != nil {
-
 	}
 	defer resp.Close()
 	body, err := resp.Body()
@@ -635,7 +608,6 @@ func cmdAction(cmd string) string {
 func MainLogSync(backupJson utils.BackupJson, c utils.Conf) {
 	defer func() {
 		if r := recover(); r != nil {
-			//fmt.Println("recover...:", r)
 			er.ErrorHandler(r.(string))
 		}
 	}()
@@ -650,6 +622,6 @@ func MainLogSync(backupJson utils.BackupJson, c utils.Conf) {
 	healthCount, _ := strconv.Atoi(health)
 	mainLog.error = strconv.Itoa(5 - healthCount)
 
-	crustTask(mainLog)
+	crustTask(mainLog, 0)
 
 }
